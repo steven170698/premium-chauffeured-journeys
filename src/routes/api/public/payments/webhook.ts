@@ -22,9 +22,10 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               id?: string;
               payment_intent?: string | null;
               amount_total?: number | null;
-              metadata?: { booking_id?: string } | null;
+              metadata?: { booking_id?: string; balance_payment?: string } | null;
             };
             const bookingId = session.metadata?.booking_id;
+            const isBalancePayment = session.metadata?.balance_payment === "true";
             if (!bookingId) {
               console.warn("webhook: missing booking_id in metadata");
               return Response.json({ received: true });
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             const { data: booking } = await supabaseAdmin
               .from("bookings")
               .select(
-                "id, trip_status, payment_deadline_at, pickup_at, estimated_end_at",
+                "id, trip_status, payment_deadline_at, pickup_at, estimated_end_at, amount_paid, final_fare, total",
               )
               .eq("id", bookingId)
               .maybeSingle();
@@ -42,6 +43,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               console.warn("webhook: booking not found", bookingId);
               return Response.json({ received: true });
             }
+
 
             const paid = (session.amount_total ?? 0) / 100;
             const stripePi =
