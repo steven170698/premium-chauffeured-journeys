@@ -915,27 +915,30 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
     };
   }, [status, ride.id, logFn]);
 
-  const mut = (label: string, fn: () => Promise<any>) =>
-    useMutation({
-      mutationFn: fn,
-      onSuccess: (r: any) => {
-        toast.success(label);
-        if (r && "finalFare" in r) setResult(r);
-        onChange();
-        qc.invalidateQueries({ queryKey: ["driver"] });
-      },
-      onError: (e: any) => toast.error(e?.message ?? "Failed"),
-    });
+  const opts = (label: string) => ({
+    onSuccess: (r: any) => {
+      toast.success(label);
+      if (r && typeof r === "object" && "finalFare" in r) setResult(r);
+      onChange();
+      qc.invalidateQueries({ queryKey: ["driver"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
 
-  const start = mut("On the way to pickup", () =>
-    startFn({ data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc } }),
-  );
-  const arrived = mut("Arrived — waiting clock started", () => arrivedFn({ data: { bookingId: ride.id } }));
-  const pickup = mut("Passenger picked up — trip meter running", () =>
-    pickupFn({ data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc } }),
-  );
-  const end = mut("Trip completed", () =>
-    endFn({
+  const start = useMutation({
+    mutationFn: () => startFn({ data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc } }),
+    ...opts("On the way to pickup"),
+  });
+  const arrived = useMutation({
+    mutationFn: () => arrivedFn({ data: { bookingId: ride.id } }),
+    ...opts("Arrived — waiting clock started"),
+  });
+  const pickup = useMutation({
+    mutationFn: () => pickupFn({ data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc } }),
+    ...opts("Passenger picked up — trip meter running"),
+  });
+  const end = useMutation({
+    mutationFn: () => endFn({
       data: {
         bookingId: ride.id,
         tolls: Number(tolls) || 0,
@@ -946,8 +949,12 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
         accuracy: lastFix?.acc,
       },
     }),
-  );
-  const abort = mut("Trip reset", () => abortFn({ data: { bookingId: ride.id } }));
+    ...opts("Trip completed"),
+  });
+  const abort = useMutation({
+    mutationFn: () => abortFn({ data: { bookingId: ride.id } }),
+    ...opts("Trip reset"),
+  });
 
   if (["completed", "canceled", "declined", "payment_expired", "pending_approval", "awaiting_payment"].includes(status)) {
     return null;
