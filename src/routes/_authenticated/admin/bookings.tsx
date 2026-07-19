@@ -70,7 +70,14 @@ function AdminBookings() {
   });
 
   const approveMut = useMutation({
-    mutationFn: (bookingId: string) => approveBooking({ data: { bookingId } }),
+    mutationFn: (bookingId: string) =>
+      approveBooking({
+        data: {
+          bookingId,
+          environment: getStripeEnvironment(),
+          returnUrl: `${window.location.origin}/booking/success`,
+        },
+      }),
     onSuccess: () => {
       toast.success("Approved — payment link sent to customer");
       invalidate();
