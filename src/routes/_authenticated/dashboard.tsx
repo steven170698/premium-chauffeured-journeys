@@ -387,6 +387,34 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
     onError: (e) => toast.error((e as Error).message),
   });
 
+  // Live re-quote as the edit inputs change
+  const [preview, setPreview] = useState<QuoteResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  useEffect(() => {
+    if (!pickup || !dest) { setPreview(null); return; }
+    setPreviewLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const q = await computeQuote({
+          data: {
+            pickup,
+            destination: dest,
+            extraStops: booking.extra_stops ? 1 : 0,
+            roundTrip: !!booking.is_round_trip,
+          },
+        });
+        setPreview(q);
+      } catch {
+        setPreview(null);
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [pickup, dest, booking.extra_stops, booking.is_round_trip]);
+
+
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-4">
