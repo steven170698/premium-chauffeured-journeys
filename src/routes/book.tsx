@@ -72,6 +72,8 @@ function BookPage() {
 
   // Submit
   const [submitting, setSubmitting] = useState(false);
+  const [fareAccepted, setFareAccepted] = useState(false);
+
 
   const extraStops = useMemo(() => (extraStopText.trim() ? 1 : 0), [extraStopText]);
   const runQuote = useServerFn(computeQuote);
