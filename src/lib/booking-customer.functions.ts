@@ -164,3 +164,70 @@ export const updateMyBooking = createServerFn({ method: "POST" })
     return { ok: true as const, quote };
   });
 
+/**
+ * Customer pays the outstanding balance on a completed ride whose final
+ * fare exceeded the amount already paid. Creates a new Stripe Checkout
+ * Session for the remaining balance only.
+ */
+export const payTripBalance = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        environment: z.enum(["sandbox", "live"]),
+        returnUrl: z.string().url(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const owned = await loadOwnedBooking(data.bookingId);
+    if ("error" in owned) return { error: owned.error };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: b } = await supabaseAdmin
+      .from("bookings")
+      .select(
+        "id, reservation_number, email, remaining_balance, final_fare, trip_status, pickup_address, destination_address, is_round_trip, user_id",
+      )
+      .eq("id", data.bookingId)
+      .maybeSingle();
+    if (!b) return { error: "Booking not found." };
+    const remaining = Number((b as any).remaining_balance ?? 0);
+    if (remaining <= 0) return { error: "No balance to pay." };
+
+    try {
+      const { createStripeClient, getStripeErrorMessage } = await import("./stripe.server");
+      const stripe = createStripeClient(data.environment);
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: {
+                name: `Ride balance ${(b as any).reservation_number}`,
+                description: `Remaining balance for ${(b as any).pickup_address} → ${(b as any).destination_address}`,
+              },
+              unit_amount: Math.round(remaining * 100),
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        ui_mode: "embedded_page",
+        return_url: `${data.returnUrl}?session_id={CHECKOUT_SESSION_ID}&booking_id=${(b as any).id}&balance=1`,
+        customer_email: (b as any).email,
+        metadata: {
+          booking_id: (b as any).id,
+          reservation_number: (b as any).reservation_number,
+          user_id: (b as any).user_id ?? "",
+          balance_payment: "true",
+        },
+      });
+      return { clientSecret: session.client_secret ?? "" };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      const { getStripeErrorMessage } = await import("./stripe.server");
+      return { error: getStripeErrorMessage(e) };
+    }
+  });
+
+
