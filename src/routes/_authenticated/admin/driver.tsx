@@ -31,7 +31,16 @@ import {
   setAvailability,
   deleteAvailability,
 } from "@/lib/driver.functions";
+import {
+  startTrip,
+  markArrivedAtPickup,
+  markPickedUp,
+  logTripLocation,
+  endTrip,
+  abortTrip,
+} from "@/lib/trip.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/_authenticated/admin/driver")({
   component: DriverDashboard,
