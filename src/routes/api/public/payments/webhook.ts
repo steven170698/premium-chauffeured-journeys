@@ -22,9 +22,10 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               id?: string;
               payment_intent?: string | null;
               amount_total?: number | null;
-              metadata?: { booking_id?: string } | null;
+              metadata?: { booking_id?: string; balance_payment?: string } | null;
             };
             const bookingId = session.metadata?.booking_id;
+            const isBalancePayment = session.metadata?.balance_payment === "true";
             if (!bookingId) {
               console.warn("webhook: missing booking_id in metadata");
               return Response.json({ received: true });
@@ -34,7 +35,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             const { data: booking } = await supabaseAdmin
               .from("bookings")
               .select(
-                "id, trip_status, payment_deadline_at, pickup_at, estimated_end_at",
+                "id, trip_status, payment_deadline_at, pickup_at, estimated_end_at, amount_paid, final_fare, total",
               )
               .eq("id", bookingId)
               .maybeSingle();
@@ -43,9 +44,30 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               return Response.json({ received: true });
             }
 
+
             const paid = (session.amount_total ?? 0) / 100;
             const stripePi =
               typeof session.payment_intent === "string" ? session.payment_intent : null;
+
+            if (isBalancePayment) {
+              // Top-up for a completed trip's remaining balance.
+              const prevPaid = Number((booking as any).amount_paid ?? 0);
+              const newPaid = +(prevPaid + paid).toFixed(2);
+              const finalFare = Number(
+                (booking as any).final_fare ?? (booking as any).total ?? 0,
+              );
+              const remaining = Math.max(0, +(finalFare - newPaid).toFixed(2));
+              await supabaseAdmin
+                .from("bookings")
+                .update({
+                  amount_paid: newPaid,
+                  remaining_balance: remaining,
+                  balance_due: remaining,
+                  payment_status: remaining <= 0 ? "paid" : "deposit_paid",
+                })
+                .eq("id", bookingId);
+              return Response.json({ received: true });
+            }
 
             // Only confirm if the booking is still awaiting payment and not past its deadline.
             const stillAwaiting = booking.trip_status === "awaiting_payment";
@@ -66,12 +88,9 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
                 .eq("id", bookingId)
                 .eq("trip_status", "awaiting_payment");
               if (error) {
-                // e.g. overlap trigger blocked (someone took the slot). Refund.
                 console.error("webhook confirm failed:", error);
               }
             } else {
-              // Payment landed after we already expired/declined the booking.
-              // Record the payment so admin can refund from the dashboard.
               await supabaseAdmin
                 .from("bookings")
                 .update({
@@ -86,6 +105,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
                 booking.trip_status,
               );
             }
+
           } else if (event.type === "transaction.payment_failed") {
             // Nothing to do — booking stays in awaiting_payment until customer
             // retries or the payment deadline expires it.

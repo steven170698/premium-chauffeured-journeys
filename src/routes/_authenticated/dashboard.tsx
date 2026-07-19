@@ -6,7 +6,7 @@ import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, 
 import { toast } from "sonner";
 import { submitReview } from "@/lib/reviews.functions";
 import { startBookingPayment } from "@/lib/payment.functions";
-import { cancelMyBooking, updateMyBooking } from "@/lib/booking-customer.functions";
+import { cancelMyBooking, updateMyBooking, payTripBalance } from "@/lib/booking-customer.functions";
 import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
@@ -222,6 +222,7 @@ function BookingRow({ b }: { b: any }) {
 
 function CompletedReceipt({ b }: { b: any }) {
   const [open, setOpen] = useState(false);
+  const [payClientSecret, setPayClientSecret] = useState<string | null>(null);
   const estMiles = Number(b.estimated_distance_miles ?? b.distance_miles ?? 0);
   const actMiles = Number(b.actual_distance_miles ?? 0);
   const estMin = Number(b.estimated_duration_minutes ?? b.duration_minutes ?? 0);
@@ -234,6 +235,23 @@ function CompletedReceipt({ b }: { b: any }) {
   const wait = Number(b.billable_waiting_minutes ?? 0);
   const tolls = Number(b.toll_amount ?? b.toll_estimate ?? 0);
   const parking = Number(b.parking_amount ?? 0);
+
+  const payBalance = useMutation({
+    mutationFn: async () => {
+      const env = getStripeEnvironment();
+      const res = await payTripBalance({
+        data: {
+          bookingId: b.id,
+          environment: env,
+          returnUrl: `${window.location.origin}/booking/success`,
+        },
+      });
+      if ("error" in res) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: (r) => setPayClientSecret(r.clientSecret ?? null),
+    onError: (e) => toast.error((e as Error).message),
+  });
 
   return (
     <div className="mt-3 rounded-xl border border-gold/30 bg-gold/5 p-3">
@@ -264,6 +282,24 @@ function CompletedReceipt({ b }: { b: any }) {
           <ReceiptRow label="Amount already paid" value={`$${paid.toFixed(2)}`} />
           {balance > 0 && <ReceiptRow label="Remaining balance" value={`$${balance.toFixed(2)}`} highlight />}
           {refund > 0 && <ReceiptRow label="Refunded" value={`$${refund.toFixed(2)}`} highlight />}
+          {balance > 0 && !payClientSecret && (
+            <button
+              type="button"
+              onClick={() => payBalance.mutate()}
+              disabled={payBalance.isPending}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-gold px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-black disabled:opacity-50"
+            >
+              <CreditCard className="h-3 w-3" />
+              {payBalance.isPending ? "Preparing…" : `Pay balance ($${balance.toFixed(2)})`}
+            </button>
+          )}
+          {payClientSecret && (
+            <div className="mt-2 overflow-hidden rounded-lg border border-gold/30">
+              <EmbeddedCheckoutProvider stripe={getStripe()} options={{ clientSecret: payClientSecret }}>
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          )}
         </div>
       )}
     </div>

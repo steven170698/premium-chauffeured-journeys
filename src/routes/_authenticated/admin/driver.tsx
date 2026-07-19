@@ -31,7 +31,16 @@ import {
   setAvailability,
   deleteAvailability,
 } from "@/lib/driver.functions";
+import {
+  startTrip,
+  markArrivedAtPickup,
+  markPickedUp,
+  logTripLocation,
+  endTrip,
+  abortTrip,
+} from "@/lib/trip.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { useEffect, useRef } from "react";
 
 export const Route = createFileRoute("/_authenticated/admin/driver")({
   component: DriverDashboard,
@@ -295,6 +304,10 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
 
       {expanded && (
         <div className="space-y-4 border-t border-border/60 p-4">
+          {/* Trip Tracker (GPS + guided state machine) */}
+          <TripTracker ride={ride} onChange={onChange} />
+
+
           {/* Contact actions */}
           <div className="grid grid-cols-4 gap-2">
             <ContactBtn icon={<Phone />} label="Call" href={`tel:${ride.phone}`} />
@@ -833,3 +846,209 @@ function EmptyState({ msg }: { msg: string }) {
     </div>
   );
 }
+
+/* ---------- TRIP TRACKER ---------- */
+
+function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
+  const qc = useQueryClient();
+  const env = (() => { try { return getStripeEnvironment(); } catch { return "sandbox" as const; } })();
+  const status = ride.trip_status as string;
+  const [tolls, setTolls] = useState("0");
+  const [parking, setParking] = useState("0");
+  const [waitElapsed, setWaitElapsed] = useState<number>(0);
+  const [tripElapsed, setTripElapsed] = useState<number>(0);
+  const [lastFix, setLastFix] = useState<{ lat: number; lng: number; acc?: number } | null>(null);
+  const [result, setResult] = useState<any>(null);
+  const watchRef = useRef<number | null>(null);
+  const lastPostRef = useRef<number>(0);
+
+  const startFn = useServerFn(startTrip);
+  const arrivedFn = useServerFn(markArrivedAtPickup);
+  const pickupFn = useServerFn(markPickedUp);
+  const logFn = useServerFn(logTripLocation);
+  const endFn = useServerFn(endTrip);
+  const abortFn = useServerFn(abortTrip);
+
+  // Ticking timers
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (ride.waiting_started_at && !ride.waiting_ended_at) {
+        setWaitElapsed((Date.now() - new Date(ride.waiting_started_at).getTime()) / 1000);
+      }
+      if (ride.trip_started_at && !ride.trip_ended_at) {
+        setTripElapsed((Date.now() - new Date(ride.trip_started_at).getTime()) / 1000);
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [ride.waiting_started_at, ride.waiting_ended_at, ride.trip_started_at, ride.trip_ended_at]);
+
+  // GPS watcher while trip is active
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    const active = ["driver_en_route", "driver_arrived", "picked_up"].includes(status);
+    if (!active) return;
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        const fix = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          acc: pos.coords.accuracy,
+        };
+        setLastFix(fix);
+        if (status === "picked_up") {
+          const now = Date.now();
+          if (now - lastPostRef.current > 15000) {
+            lastPostRef.current = now;
+            void logFn({
+              data: { bookingId: ride.id, lat: fix.lat, lng: fix.lng, accuracy: fix.acc },
+            }).catch(() => {});
+          }
+        }
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    );
+    watchRef.current = id;
+    return () => {
+      if (watchRef.current != null) navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
+    };
+  }, [status, ride.id, logFn]);
+
+  const opts = (label: string) => ({
+    onSuccess: (r: any) => {
+      toast.success(label);
+      if (r && typeof r === "object" && "finalFare" in r) setResult(r);
+      onChange();
+      qc.invalidateQueries({ queryKey: ["driver"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+
+  const start = useMutation({
+    mutationFn: () => startFn({ data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc } }),
+    ...opts("On the way to pickup"),
+  });
+  const arrived = useMutation({
+    mutationFn: () => arrivedFn({ data: { bookingId: ride.id } }),
+    ...opts("Arrived — waiting clock started"),
+  });
+  const pickup = useMutation({
+    mutationFn: () => pickupFn({ data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc } }),
+    ...opts("Passenger picked up — trip meter running"),
+  });
+  const end = useMutation({
+    mutationFn: () => endFn({
+      data: {
+        bookingId: ride.id,
+        tolls: Number(tolls) || 0,
+        parking: Number(parking) || 0,
+        environment: env,
+        lat: lastFix?.lat,
+        lng: lastFix?.lng,
+        accuracy: lastFix?.acc,
+      },
+    }),
+    ...opts("Trip completed"),
+  });
+  const abort = useMutation({
+    mutationFn: () => abortFn({ data: { bookingId: ride.id } }),
+    ...opts("Trip reset"),
+  });
+
+  if (["completed", "canceled", "declined", "payment_expired", "pending_approval", "awaiting_payment"].includes(status)) {
+    return null;
+  }
+
+  const fmtDur = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="rounded-2xl border border-gold/40 bg-gold/5 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gold">Trip Tracker</p>
+        {lastFix ? (
+          <span className="text-[10px] text-muted-foreground">
+            GPS · ±{Math.round(lastFix.acc ?? 0)}m
+          </span>
+        ) : (
+          <span className="text-[10px] text-amber-500">Waiting for GPS…</span>
+        )}
+      </div>
+
+      {status === "driver_arrived" && (
+        <div className="mb-2 rounded-lg bg-background/60 p-2 text-center text-xs">
+          Waiting at pickup · <span className="font-semibold text-gold">{fmtDur(waitElapsed)}</span>
+        </div>
+      )}
+      {status === "picked_up" && (
+        <div className="mb-2 rounded-lg bg-background/60 p-2 text-center text-xs">
+          Trip in progress · <span className="font-semibold text-gold">{fmtDur(tripElapsed)}</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        {(status === "confirmed" || status === "driver_preparing") && (
+          <button onClick={() => start.mutate()} disabled={start.isPending} className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50">
+            Start Trip → En route
+          </button>
+        )}
+        {status === "driver_en_route" && (
+          <button onClick={() => arrived.mutate()} disabled={arrived.isPending} className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50">
+            Arrived at Pickup
+          </button>
+        )}
+        {status === "driver_arrived" && (
+          <button onClick={() => pickup.mutate()} disabled={pickup.isPending} className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50">
+            Passenger Picked Up
+          </button>
+        )}
+        {status === "picked_up" && (
+          <>
+            <label className="text-[10px] text-muted-foreground">
+              Tolls ($)
+              <input type="number" step="0.01" value={tolls} onChange={(e) => setTolls(e.target.value)} className="mt-0.5 w-full rounded border border-border/60 bg-background p-1.5 text-sm" />
+            </label>
+            <label className="text-[10px] text-muted-foreground">
+              Parking ($)
+              <input type="number" step="0.01" value={parking} onChange={(e) => setParking(e.target.value)} className="mt-0.5 w-full rounded border border-border/60 bg-background p-1.5 text-sm" />
+            </label>
+            <button onClick={() => end.mutate()} disabled={end.isPending} className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50">
+              End Trip & Finalize Fare
+            </button>
+          </>
+        )}
+        {["driver_en_route", "driver_arrived", "picked_up"].includes(status) && (
+          <button onClick={() => abort.mutate()} disabled={abort.isPending} className="col-span-2 rounded-lg border border-destructive/40 py-2 text-xs text-destructive">
+            Reset trip meter
+          </button>
+        )}
+      </div>
+
+      {result && (
+        <div className="mt-3 space-y-1 rounded-lg border border-gold/30 bg-background/60 p-3 text-xs">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="font-semibold text-gold">Fare Reconciled</p>
+            <span className="font-semibold">${Number(result.finalFare).toFixed(2)}</span>
+          </div>
+          <p className="text-muted-foreground">
+            Actual: {result.actualDistanceMiles} mi · {result.actualDurationMinutes} min
+          </p>
+          {result.capApplied && (
+            <p className="text-amber-500">Fare capped at max automatic increase.</p>
+          )}
+          {result.remainingBalance > 0 && (
+            <p className="text-amber-500">Customer owes ${result.remainingBalance.toFixed(2)}.</p>
+          )}
+          {result.refunded > 0 && (
+            <p className="text-emerald-500">Auto-refunded ${result.refunded.toFixed(2)}.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
