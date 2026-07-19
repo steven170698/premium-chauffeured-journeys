@@ -17,12 +17,15 @@ export type Database = {
       admin_settings: {
         Row: {
           airport_surcharge: number
+          allow_off_session_charges: boolean
           approval_deadline_minutes: number
           auto_confirm_future_bookings: boolean
           auto_decline_on_timeout: boolean
           base_fare: number
           booking_fee: number
           deposit_percentage: number
+          free_pickup_waiting_minutes: number
+          free_stop_waiting_minutes: number
           google_calendar_id: string | null
           hold_during_approval: boolean
           id: number
@@ -30,11 +33,14 @@ export type Database = {
           loyalty_20_vip: boolean
           loyalty_5_discount: number
           loyalty_combines_with_coupons: boolean
+          max_automatic_fare_increase: number
+          max_waiting_charge: number
           minimum_advance_notice_minutes: number
           minimum_booking_block_minutes: number
           payment_window_minutes: number
           per_mile_rate: number
           per_minute_rate: number
+          pickup_waiting_rate: number
           preparation_buffer_minutes: number
           referral_combines_with_coupons: boolean
           referral_minimum_ride_value: number
@@ -44,16 +50,21 @@ export type Database = {
           require_approval: boolean
           sms_enabled: Json
           stop_fee: number
+          stop_waiting_rate: number
           updated_at: string
+          waiting_enabled: boolean
         }
         Insert: {
           airport_surcharge?: number
+          allow_off_session_charges?: boolean
           approval_deadline_minutes?: number
           auto_confirm_future_bookings?: boolean
           auto_decline_on_timeout?: boolean
           base_fare?: number
           booking_fee?: number
           deposit_percentage?: number
+          free_pickup_waiting_minutes?: number
+          free_stop_waiting_minutes?: number
           google_calendar_id?: string | null
           hold_during_approval?: boolean
           id?: number
@@ -61,11 +72,14 @@ export type Database = {
           loyalty_20_vip?: boolean
           loyalty_5_discount?: number
           loyalty_combines_with_coupons?: boolean
+          max_automatic_fare_increase?: number
+          max_waiting_charge?: number
           minimum_advance_notice_minutes?: number
           minimum_booking_block_minutes?: number
           payment_window_minutes?: number
           per_mile_rate?: number
           per_minute_rate?: number
+          pickup_waiting_rate?: number
           preparation_buffer_minutes?: number
           referral_combines_with_coupons?: boolean
           referral_minimum_ride_value?: number
@@ -75,16 +89,21 @@ export type Database = {
           require_approval?: boolean
           sms_enabled?: Json
           stop_fee?: number
+          stop_waiting_rate?: number
           updated_at?: string
+          waiting_enabled?: boolean
         }
         Update: {
           airport_surcharge?: number
+          allow_off_session_charges?: boolean
           approval_deadline_minutes?: number
           auto_confirm_future_bookings?: boolean
           auto_decline_on_timeout?: boolean
           base_fare?: number
           booking_fee?: number
           deposit_percentage?: number
+          free_pickup_waiting_minutes?: number
+          free_stop_waiting_minutes?: number
           google_calendar_id?: string | null
           hold_during_approval?: boolean
           id?: number
@@ -92,11 +111,14 @@ export type Database = {
           loyalty_20_vip?: boolean
           loyalty_5_discount?: number
           loyalty_combines_with_coupons?: boolean
+          max_automatic_fare_increase?: number
+          max_waiting_charge?: number
           minimum_advance_notice_minutes?: number
           minimum_booking_block_minutes?: number
           payment_window_minutes?: number
           per_mile_rate?: number
           per_minute_rate?: number
+          pickup_waiting_rate?: number
           preparation_buffer_minutes?: number
           referral_combines_with_coupons?: boolean
           referral_minimum_ride_value?: number
@@ -106,7 +128,9 @@ export type Database = {
           require_approval?: boolean
           sms_enabled?: Json
           stop_fee?: number
+          stop_waiting_rate?: number
           updated_at?: string
+          waiting_enabled?: boolean
         }
         Relationships: []
       }
@@ -140,6 +164,47 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_audit_log: {
+        Row: {
+          booking_id: string
+          changed_by: string | null
+          created_at: string
+          field: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          reason: string | null
+        }
+        Insert: {
+          booking_id: string
+          changed_by?: string | null
+          created_at?: string
+          field: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+        }
+        Update: {
+          booking_id?: string
+          changed_by?: string | null
+          created_at?: string
+          field?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_audit_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_holds: {
         Row: {
           created_at: string
@@ -172,6 +237,8 @@ export type Database = {
       }
       bookings: {
         Row: {
+          actual_distance_miles: number | null
+          actual_duration_minutes: number | null
           airport_stop_fees: number
           amount_paid: number
           approval_deadline_at: string | null
@@ -179,26 +246,38 @@ export type Database = {
           bags: number
           balance_due: number
           base_fare: number
+          billable_waiting_minutes: number
           booking_fee: number
           coupon_id: string | null
           created_at: string
+          customer_fare_policy_accepted_at: string | null
           declined_at: string | null
           destination_address: string
           destination_lat: number | null
           destination_lng: number | null
           discount_amount: number
           distance_miles: number | null
+          driver_delay_minutes: number
           driver_notes: string | null
           duration_minutes: number | null
           email: string
+          estimated_distance_miles: number | null
+          estimated_duration_minutes: number | null
           estimated_end_at: string | null
+          estimated_fare: number | null
           extra_stops: string | null
+          fare_adjustment_percentage: number | null
+          final_charge_status: string | null
+          final_fare: number | null
+          free_waiting_minutes: number
           full_name: string
           google_calendar_event_id: string | null
+          gps_tracking_status: string | null
           id: string
           is_round_trip: boolean
           loyalty_discount_applied: number
           mileage_charge: number
+          parking_amount: number
           passengers: number
           payment_deadline_at: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
@@ -207,21 +286,33 @@ export type Database = {
           pickup_at: string
           pickup_lat: number | null
           pickup_lng: number | null
+          pickup_waiting_minutes: number
           referred_by_code: string | null
+          remaining_balance: number | null
           reservation_number: string
           return_at: string | null
           special_instructions: string | null
+          stop_waiting_minutes: number
+          stripe_customer_id: string | null
           stripe_payment_intent: string | null
+          stripe_payment_method_id: string | null
           stripe_session_id: string | null
           subtotal: number
           time_charge: number
+          toll_amount: number
           toll_estimate: number
           total: number
+          trip_ended_at: string | null
+          trip_started_at: string | null
           trip_status: Database["public"]["Enums"]["trip_status"]
           updated_at: string
           user_id: string | null
+          waiting_ended_at: string | null
+          waiting_started_at: string | null
         }
         Insert: {
+          actual_distance_miles?: number | null
+          actual_duration_minutes?: number | null
           airport_stop_fees?: number
           amount_paid?: number
           approval_deadline_at?: string | null
@@ -229,26 +320,38 @@ export type Database = {
           bags?: number
           balance_due?: number
           base_fare?: number
+          billable_waiting_minutes?: number
           booking_fee?: number
           coupon_id?: string | null
           created_at?: string
+          customer_fare_policy_accepted_at?: string | null
           declined_at?: string | null
           destination_address: string
           destination_lat?: number | null
           destination_lng?: number | null
           discount_amount?: number
           distance_miles?: number | null
+          driver_delay_minutes?: number
           driver_notes?: string | null
           duration_minutes?: number | null
           email: string
+          estimated_distance_miles?: number | null
+          estimated_duration_minutes?: number | null
           estimated_end_at?: string | null
+          estimated_fare?: number | null
           extra_stops?: string | null
+          fare_adjustment_percentage?: number | null
+          final_charge_status?: string | null
+          final_fare?: number | null
+          free_waiting_minutes?: number
           full_name: string
           google_calendar_event_id?: string | null
+          gps_tracking_status?: string | null
           id?: string
           is_round_trip?: boolean
           loyalty_discount_applied?: number
           mileage_charge?: number
+          parking_amount?: number
           passengers?: number
           payment_deadline_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
@@ -257,21 +360,33 @@ export type Database = {
           pickup_at: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pickup_waiting_minutes?: number
           referred_by_code?: string | null
+          remaining_balance?: number | null
           reservation_number?: string
           return_at?: string | null
           special_instructions?: string | null
+          stop_waiting_minutes?: number
+          stripe_customer_id?: string | null
           stripe_payment_intent?: string | null
+          stripe_payment_method_id?: string | null
           stripe_session_id?: string | null
           subtotal?: number
           time_charge?: number
+          toll_amount?: number
           toll_estimate?: number
           total?: number
+          trip_ended_at?: string | null
+          trip_started_at?: string | null
           trip_status?: Database["public"]["Enums"]["trip_status"]
           updated_at?: string
           user_id?: string | null
+          waiting_ended_at?: string | null
+          waiting_started_at?: string | null
         }
         Update: {
+          actual_distance_miles?: number | null
+          actual_duration_minutes?: number | null
           airport_stop_fees?: number
           amount_paid?: number
           approval_deadline_at?: string | null
@@ -279,26 +394,38 @@ export type Database = {
           bags?: number
           balance_due?: number
           base_fare?: number
+          billable_waiting_minutes?: number
           booking_fee?: number
           coupon_id?: string | null
           created_at?: string
+          customer_fare_policy_accepted_at?: string | null
           declined_at?: string | null
           destination_address?: string
           destination_lat?: number | null
           destination_lng?: number | null
           discount_amount?: number
           distance_miles?: number | null
+          driver_delay_minutes?: number
           driver_notes?: string | null
           duration_minutes?: number | null
           email?: string
+          estimated_distance_miles?: number | null
+          estimated_duration_minutes?: number | null
           estimated_end_at?: string | null
+          estimated_fare?: number | null
           extra_stops?: string | null
+          fare_adjustment_percentage?: number | null
+          final_charge_status?: string | null
+          final_fare?: number | null
+          free_waiting_minutes?: number
           full_name?: string
           google_calendar_event_id?: string | null
+          gps_tracking_status?: string | null
           id?: string
           is_round_trip?: boolean
           loyalty_discount_applied?: number
           mileage_charge?: number
+          parking_amount?: number
           passengers?: number
           payment_deadline_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
@@ -307,19 +434,29 @@ export type Database = {
           pickup_at?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pickup_waiting_minutes?: number
           referred_by_code?: string | null
+          remaining_balance?: number | null
           reservation_number?: string
           return_at?: string | null
           special_instructions?: string | null
+          stop_waiting_minutes?: number
+          stripe_customer_id?: string | null
           stripe_payment_intent?: string | null
+          stripe_payment_method_id?: string | null
           stripe_session_id?: string | null
           subtotal?: number
           time_charge?: number
+          toll_amount?: number
           toll_estimate?: number
           total?: number
+          trip_ended_at?: string | null
+          trip_started_at?: string | null
           trip_status?: Database["public"]["Enums"]["trip_status"]
           updated_at?: string
           user_id?: string | null
+          waiting_ended_at?: string | null
+          waiting_started_at?: string | null
         }
         Relationships: [
           {
@@ -784,6 +921,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sms_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_location_points: {
+        Row: {
+          accuracy: number | null
+          booking_id: string
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          recorded_at: string
+          trip_status: string | null
+        }
+        Insert: {
+          accuracy?: number | null
+          booking_id: string
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          recorded_at?: string
+          trip_status?: string | null
+        }
+        Update: {
+          accuracy?: number | null
+          booking_id?: string
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          recorded_at?: string
+          trip_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_location_points_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"

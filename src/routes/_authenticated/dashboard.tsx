@@ -1,17 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, X, Pencil, Ban } from "lucide-react";
+import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, X, Pencil, Ban, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { submitReview } from "@/lib/reviews.functions";
 import { startBookingPayment } from "@/lib/payment.functions";
 import { cancelMyBooking, updateMyBooking } from "@/lib/booking-customer.functions";
+import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import type { SelectedPlace } from "@/lib/useGoogleMaps";
+
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -212,10 +214,70 @@ function BookingRow({ b }: { b: any }) {
       {(b.trip_status === "pending_approval" || b.trip_status === "awaiting_payment") && (
         <ManageBooking booking={b} canEdit={b.trip_status === "pending_approval"} />
       )}
+      {b.trip_status === "completed" && <CompletedReceipt b={b} />}
       {b.trip_status === "completed" && <ReviewPrompt bookingId={b.id} />}
     </div>
   );
 }
+
+function CompletedReceipt({ b }: { b: any }) {
+  const [open, setOpen] = useState(false);
+  const estMiles = Number(b.estimated_distance_miles ?? b.distance_miles ?? 0);
+  const actMiles = Number(b.actual_distance_miles ?? 0);
+  const estMin = Number(b.estimated_duration_minutes ?? b.duration_minutes ?? 0);
+  const actMin = Number(b.actual_duration_minutes ?? 0);
+  const estFare = Number(b.estimated_fare ?? b.total ?? 0);
+  const finalFare = Number(b.final_fare ?? b.total ?? 0);
+  const paid = Number(b.amount_paid ?? 0);
+  const balance = Number(b.remaining_balance ?? Math.max(0, finalFare - paid));
+  const refund = Math.max(0, paid - finalFare);
+  const wait = Number(b.billable_waiting_minutes ?? 0);
+  const tolls = Number(b.toll_amount ?? b.toll_estimate ?? 0);
+  const parking = Number(b.parking_amount ?? 0);
+
+  return (
+    <div className="mt-3 rounded-xl border border-gold/30 bg-gold/5 p-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-gold">
+          <Receipt className="h-3 w-3" /> Trip receipt
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {open ? "Hide" : "View"} · ${finalFare.toFixed(2)}
+        </span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-2 text-xs">
+          <ReceiptRow label="Estimated distance" value={`${estMiles.toFixed(1)} mi`} />
+          <ReceiptRow label="Actual distance" value={actMiles ? `${actMiles.toFixed(1)} mi` : "—"} highlight />
+          <ReceiptRow label="Estimated duration" value={`${estMin} min`} />
+          <ReceiptRow label="Actual duration" value={actMin ? `${actMin} min` : "—"} highlight />
+          <ReceiptRow label="Billable waiting" value={wait ? `${wait} min` : "—"} />
+          <ReceiptRow label="Tolls" value={`$${tolls.toFixed(2)}`} />
+          <ReceiptRow label="Parking" value={`$${parking.toFixed(2)}`} />
+          <div className="my-1 h-px bg-border/60" />
+          <ReceiptRow label="Estimated fare" value={`$${estFare.toFixed(2)}`} />
+          <ReceiptRow label="Final fare" value={`$${finalFare.toFixed(2)}`} highlight />
+          <ReceiptRow label="Amount already paid" value={`$${paid.toFixed(2)}`} />
+          {balance > 0 && <ReceiptRow label="Remaining balance" value={`$${balance.toFixed(2)}`} highlight />}
+          {refund > 0 && <ReceiptRow label="Refunded" value={`$${refund.toFixed(2)}`} highlight />}
+        </div>
+      )}
+    </div>
+  );
+}
+function ReceiptRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={highlight ? "font-semibold text-foreground" : "text-foreground"}>{value}</span>
+    </div>
+  );
+}
+
 
 function ManageBooking({ booking, canEdit }: { booking: any; canEdit: boolean }) {
   const qc = useQueryClient();
@@ -314,12 +376,45 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
       return res;
     },
     onSuccess: (res) => {
-      toast.success(`Ride updated — new total $${Number(res.total).toFixed(2)}`);
+      if ("ok" in res) {
+        toast.success(
+          `Ride updated — ${res.quote.distanceMiles} mi · ${res.quote.durationMinutes} min · new total $${Number(res.quote.total).toFixed(2)}`,
+        );
+      }
       qc.invalidateQueries({ queryKey: ["my-bookings"] });
       onClose();
     },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  // Live re-quote as the edit inputs change
+  const [preview, setPreview] = useState<QuoteResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  useEffect(() => {
+    if (!pickup || !dest) { setPreview(null); return; }
+    setPreviewLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const q = await computeQuote({
+          data: {
+            pickup,
+            destination: dest,
+            extraStops: booking.extra_stops ? 1 : 0,
+            roundTrip: !!booking.is_round_trip,
+          },
+        });
+        setPreview(q);
+      } catch {
+        setPreview(null);
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [pickup, dest, booking.extra_stops, booking.is_round_trip]);
+
+
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-4">
@@ -400,6 +495,22 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
             />
           </div>
         </div>
+        <div className="mt-4 rounded-2xl border border-gold/30 bg-gold/5 p-4 text-xs">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="uppercase tracking-widest text-gold">New estimate</span>
+            {previewLoading && <span className="text-muted-foreground">Recalculating…</span>}
+          </div>
+          {preview ? (
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div><div className="text-muted-foreground">Distance</div><div className="font-semibold">{preview.distanceMiles} mi</div></div>
+              <div><div className="text-muted-foreground">Time</div><div className="font-semibold">{preview.durationMinutes} min</div></div>
+              <div><div className="text-muted-foreground">New total</div><div className="font-semibold text-gold">${preview.total.toFixed(2)}</div></div>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">Pick both addresses to preview the new fare.</div>
+          )}
+        </div>
+
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground">
             Cancel

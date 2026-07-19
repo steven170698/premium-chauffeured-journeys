@@ -72,6 +72,8 @@ function BookPage() {
 
   // Submit
   const [submitting, setSubmitting] = useState(false);
+  const [fareAccepted, setFareAccepted] = useState(false);
+
 
   const extraStops = useMemo(() => (extraStopText.trim() ? 1 : 0), [extraStopText]);
   const runQuote = useServerFn(computeQuote);
@@ -127,8 +129,9 @@ function BookPage() {
   }, [pickup, destination, extraStops, roundTrip, runQuote]);
 
   const canSubmit = Boolean(
-    quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime,
+    quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime && fareAccepted,
   );
+
 
   const handleSubmit = async () => {
     if (!canSubmit || !pickup || !destination) {
@@ -158,8 +161,10 @@ function BookPage() {
           extraStop: extraStopText || null,
           flightNumber: flightNumber || null,
           specialInstructions: specialInstructions || null,
+          fareAdjustmentPolicyAccepted: fareAccepted,
         },
       });
+
 
       if ("error" in result) throw new Error(result.error);
       toast.success("Ride request submitted — awaiting driver approval.");
@@ -334,15 +339,30 @@ function BookPage() {
             </Fieldset>
 
 
-            <div className="rounded-2xl border border-gold/20 bg-gold/5 p-4 text-xs leading-relaxed text-muted-foreground">
+            <div className="space-y-3 rounded-2xl border border-gold/20 bg-gold/5 p-4 text-xs leading-relaxed text-muted-foreground">
               <div className="flex items-start gap-3">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 <p>
-                  Rates are benchmarked against Uber &amp; Lyft in NY/NJ and set roughly 10–15%
-                  lower. Tolls, waiting time, parking, and route changes may adjust the final fare.
+                  This is an <span className="font-semibold text-foreground">Estimated Fare</span>. The final fare may
+                  change based on actual mileage, actual trip duration, waiting time, tolls, parking, additional stops,
+                  destination changes, and other customer-requested changes.
                 </p>
               </div>
+              <label className="flex items-start gap-3 rounded-xl border border-gold/30 bg-background/60 p-3 text-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={fareAccepted}
+                  onChange={(e) => setFareAccepted(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-[var(--gold)]"
+                  required
+                />
+                <span className="text-xs">
+                  I accept the fare-adjustment policy above and authorize Stevie Services to bill the final fare after
+                  my ride is completed.
+                </span>
+              </label>
             </div>
+
           </form>
 
           {/* Estimate panel */}

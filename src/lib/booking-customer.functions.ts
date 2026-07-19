@@ -145,6 +145,9 @@ export const updateMyBooking = createServerFn({ method: "POST" })
         special_instructions: data.specialInstructions || null,
         distance_miles: quote.distanceMiles,
         duration_minutes: quote.durationMinutes,
+        estimated_distance_miles: quote.distanceMiles,
+        estimated_duration_minutes: quote.durationMinutes,
+        estimated_fare: quote.total,
         estimated_end_at: estimatedEndAt.toISOString(),
         base_fare: quote.baseFare,
         mileage_charge: quote.mileage,
@@ -158,5 +161,6 @@ export const updateMyBooking = createServerFn({ method: "POST" })
       })
       .eq("id", booking.id);
     if (error) return { error: error.message };
-    return { ok: true as const, total: quote.total };
+    return { ok: true as const, quote };
   });
+
