@@ -179,6 +179,24 @@ function AdminBookings() {
                   <td className="px-4 py-3 text-right font-display">${Number(b.total).toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      {b.trip_status === "pending_approval" && (
+                        <>
+                          <button
+                            disabled={approveMut.isPending}
+                            onClick={() => approveMut.mutate(b.id)}
+                            className="rounded-full bg-gold-gradient px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-gold-foreground shadow-gold-glow disabled:opacity-50"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            disabled={declineMut.isPending}
+                            onClick={() => declineMut.mutate(b.id)}
+                            className="rounded-full border border-red-500/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                          >
+                            Decline
+                          </button>
+                        </>
+                      )}
                       {actions.map((a) => (
                         <button
                           key={a.to}
