@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { listApprovedReviews } from "@/lib/reviews.functions";
 import {
   Plane,
   Building2,
@@ -199,15 +201,29 @@ function WhyChooseUs() {
 }
 
 function Testimonials() {
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["approved-reviews"],
+    queryFn: () => listApprovedReviews(),
+    staleTime: 60_000,
+  });
+  const items = reviews.length > 0
+    ? reviews.map((r) => ({
+        name: "Verified rider",
+        role: new Date(r.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+        quote: r.comment ?? "",
+        rating: r.rating,
+      })).filter((r) => r.quote)
+    : testimonials.map((t) => ({ ...t, rating: 5 }));
+  if (items.length === 0) return null;
   return (
     <section className="mx-auto max-w-7xl px-6 py-24">
       <SectionHeader eyebrow="Testimonials" title="Trusted by discerning riders" />
       <div className="mt-14 grid gap-6 md:grid-cols-3">
-        {testimonials.map((t) => (
-          <figure key={t.name} className="flex flex-col rounded-3xl border border-border/60 bg-card/60 p-7">
+        {items.slice(0, 6).map((t, i) => (
+          <figure key={i} className="flex flex-col rounded-3xl border border-border/60 bg-card/60 p-7">
             <div className="flex gap-1 text-gold">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} className="h-4 w-4 fill-current" />
+              {Array.from({ length: t.rating }).map((_, j) => (
+                <Star key={j} className="h-4 w-4 fill-current" />
               ))}
             </div>
             <blockquote className="mt-5 font-display text-lg leading-snug text-foreground">
