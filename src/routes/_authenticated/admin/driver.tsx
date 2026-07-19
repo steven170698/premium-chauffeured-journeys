@@ -304,6 +304,10 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
 
       {expanded && (
         <div className="space-y-4 border-t border-border/60 p-4">
+          {/* Trip Tracker (GPS + guided state machine) */}
+          <TripTracker ride={ride} onChange={onChange} />
+
+
           {/* Contact actions */}
           <div className="grid grid-cols-4 gap-2">
             <ContactBtn icon={<Phone />} label="Call" href={`tel:${ride.phone}`} />
