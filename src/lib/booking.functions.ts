@@ -24,7 +24,9 @@ const requestInputSchema = z.object({
   extraStop: z.string().optional().nullable(),
   flightNumber: z.string().optional().nullable(),
   specialInstructions: z.string().optional().nullable(),
+  fareAdjustmentPolicyAccepted: z.boolean().optional().default(false),
 });
+
 
 type RequestResult =
   | {
