@@ -243,7 +243,7 @@ function BookPage() {
               </>
             )}
 
-            <Fieldset title="Trip Details" step="02">
+            <Fieldset title="Trip Details" step={isSignedIn ? "01" : "02"}>
               <div className="space-y-4">
                 <Field label="Pickup Address" required icon={<MapPin className="h-4 w-4 text-gold" />}>
                   <PlaceAutocomplete
