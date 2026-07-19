@@ -179,7 +179,7 @@ function BookPage() {
             className="space-y-8 rounded-3xl border border-border/60 bg-card/60 p-6 backdrop-blur md:p-9"
             onSubmit={(e) => {
               e.preventDefault();
-              handleContinue();
+              handleSubmit();
             }}
           >
             <Fieldset title="Contact Information" step="01">
