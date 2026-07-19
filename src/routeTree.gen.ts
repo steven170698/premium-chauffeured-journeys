@@ -20,6 +20,7 @@ import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminReviewsRouteImport } from './routes/_authenticated/admin/reviews'
+import { Route as AuthenticatedAdminDriverRouteImport } from './routes/_authenticated/admin/driver'
 import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authenticated/admin/calendar'
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated/admin/bookings'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -80,6 +81,12 @@ const AuthenticatedAdminReviewsRoute =
     path: '/reviews',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminDriverRoute =
+  AuthenticatedAdminDriverRouteImport.update({
+    id: '/driver',
+    path: '/driver',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminCalendarRoute =
   AuthenticatedAdminCalendarRouteImport.update({
     id: '/calendar',
@@ -109,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/booking/success': typeof BookingSuccessRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
+  '/admin/driver': typeof AuthenticatedAdminDriverRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -123,6 +131,7 @@ export interface FileRoutesByTo {
   '/booking/success': typeof BookingSuccessRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
+  '/admin/driver': typeof AuthenticatedAdminDriverRoute
   '/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -140,6 +149,7 @@ export interface FileRoutesById {
   '/booking/success': typeof BookingSuccessRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
+  '/_authenticated/admin/driver': typeof AuthenticatedAdminDriverRoute
   '/_authenticated/admin/reviews': typeof AuthenticatedAdminReviewsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/booking/success'
     | '/admin/bookings'
     | '/admin/calendar'
+    | '/admin/driver'
     | '/admin/reviews'
     | '/admin/settings'
     | '/admin/'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/booking/success'
     | '/admin/bookings'
     | '/admin/calendar'
+    | '/admin/driver'
     | '/admin/reviews'
     | '/admin/settings'
     | '/admin'
@@ -187,6 +199,7 @@ export interface FileRouteTypes {
     | '/booking/success'
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/calendar'
+    | '/_authenticated/admin/driver'
     | '/_authenticated/admin/reviews'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/'
@@ -282,6 +295,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminReviewsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/driver': {
+      id: '/_authenticated/admin/driver'
+      path: '/driver'
+      fullPath: '/admin/driver'
+      preLoaderRoute: typeof AuthenticatedAdminDriverRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/calendar': {
       id: '/_authenticated/admin/calendar'
       path: '/calendar'
@@ -309,6 +329,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminBookingsRoute: typeof AuthenticatedAdminBookingsRoute
   AuthenticatedAdminCalendarRoute: typeof AuthenticatedAdminCalendarRoute
+  AuthenticatedAdminDriverRoute: typeof AuthenticatedAdminDriverRoute
   AuthenticatedAdminReviewsRoute: typeof AuthenticatedAdminReviewsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -318,6 +339,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
   {
     AuthenticatedAdminBookingsRoute: AuthenticatedAdminBookingsRoute,
     AuthenticatedAdminCalendarRoute: AuthenticatedAdminCalendarRoute,
+    AuthenticatedAdminDriverRoute: AuthenticatedAdminDriverRoute,
     AuthenticatedAdminReviewsRoute: AuthenticatedAdminReviewsRoute,
     AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
