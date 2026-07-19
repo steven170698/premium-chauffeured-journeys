@@ -6,8 +6,13 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Toaster } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
+import { LogOut, LayoutDashboard } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -126,7 +131,12 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-function SiteHeader() {
+function SiteHeader({ user }: { user: User | null }) {
+  const navigate = useNavigate();
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  };
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
@@ -147,12 +157,28 @@ function SiteHeader() {
           <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
           <a href="tel:9292999747" className="text-sm text-muted-foreground hover:text-foreground transition-colors">929-299-9747</a>
         </nav>
-        <Link
-          to="/book"
-          className="inline-flex items-center justify-center rounded-full bg-gold-gradient px-5 py-2.5 text-sm font-semibold text-gold-foreground transition-transform hover:-translate-y-0.5 shadow-gold-glow"
-        >
-          Book a Ride
-        </Link>
+        <div className="flex items-center gap-2">
+          {user ? (
+            <>
+              <Link to="/dashboard" className="hidden md:inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:bg-muted">
+                <LayoutDashboard className="h-3 w-3" /> Dashboard
+              </Link>
+              <button onClick={handleSignOut} title="Sign out" className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-2 text-xs font-semibold hover:bg-muted">
+                <LogOut className="h-3 w-3" />
+              </button>
+            </>
+          ) : (
+            <Link to="/auth" className="hidden md:inline-flex rounded-full border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:bg-muted">
+              Sign in
+            </Link>
+          )}
+          <Link
+            to="/book"
+            className="inline-flex items-center justify-center rounded-full bg-gold-gradient px-5 py-2.5 text-sm font-semibold text-gold-foreground transition-transform hover:-translate-y-0.5 shadow-gold-glow"
+          >
+            Book a Ride
+          </Link>
+        </div>
       </div>
     </header>
   );
@@ -200,15 +226,29 @@ function SiteFooter() {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      setUser(session?.user ?? null);
+      router.invalidate();
+      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [router, queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex min-h-screen flex-col">
-        <SiteHeader />
+        <SiteHeader user={user} />
         <main className="flex-1">
           <Outlet />
         </main>
         <SiteFooter />
+        <Toaster theme="dark" position="top-right" richColors />
       </div>
     </QueryClientProvider>
   );
