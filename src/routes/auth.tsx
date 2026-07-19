@@ -52,23 +52,30 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/book`,
             data: { full_name: fullName, phone },
           },
         });
         if (error) throw error;
-        toast.success("Account created! Check your email if confirmation is required.");
+        if (data.session) {
+          toast.success("Welcome to Stevie Services!");
+          router.invalidate();
+          navigate({ to: "/book" });
+        } else {
+          toast.success("Account created! Check your email to confirm, then sign in.");
+          setMode("signin");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
+        router.invalidate();
+        navigate({ to: "/dashboard" });
       }
-      router.invalidate();
-      navigate({ to: "/dashboard" });
     } catch (err: any) {
       toast.error(err.message || "Authentication failed");
     } finally {
