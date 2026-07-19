@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Professional, reliable, comfortable chauffeur service in New York. Airport transfers, business travel, events, and long-distance trips. Instant online booking.",
+          "Professional, reliable, comfortable chauffeur service in New York and New Jersey. Airport transfers, business travel, events, and long-distance trips. Instant online booking.",
       },
       { property: "og:title", content: "Stevie Services LLC — Luxury Chauffeur Service" },
       {
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/")({
 
 const services = [
   { icon: Plane, title: "Airport Transportation", desc: "On-time transfers to JFK, LGA, EWR and beyond. Flight tracking included." },
-  { icon: MapPin, title: "Local Transportation", desc: "City rides across NYC boroughs with a professional touch." },
+  { icon: MapPin, title: "Local Transportation", desc: "City rides across NYC boroughs and New Jersey with a professional touch." },
   { icon: Building2, title: "Business Transportation", desc: "Executive travel, roadshows, and client transport with discretion." },
   { icon: CalendarRange, title: "Event Transportation", desc: "Weddings, galas, concerts — arrive in comfort and style." },
   { icon: RouteIcon, title: "Long Distance Trips", desc: "Intercity travel throughout the Northeast, priced transparently." },
@@ -92,7 +92,7 @@ function Hero() {
       <div className="mx-auto flex max-w-7xl flex-col items-center px-6 pt-20 pb-24 text-center md:pt-28 md:pb-36">
         <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-background/50 px-4 py-1.5 text-[11px] uppercase tracking-[0.28em] text-gold animate-fade-up">
           <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-          Available 24/7 in New York
+          Available 24/7 in New York & New Jersey
         </div>
 
         <h1 className="mt-6 max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl md:text-7xl animate-fade-up">
