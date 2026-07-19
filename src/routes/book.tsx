@@ -333,67 +333,6 @@ function BookPage() {
               </div>
             </Fieldset>
 
-            <Divider />
-
-            <Fieldset title="Passengers & Vehicle" step="03">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Passengers" icon={<Users className="h-4 w-4 text-gold" />}>
-                  <input
-                    type="number"
-                    min={1}
-                    className={inputCls}
-                    value={passengers}
-                    onChange={(e) => setPassengers(Math.max(1, Number(e.target.value) || 1))}
-                  />
-                </Field>
-                <Field label="Bags" icon={<Briefcase className="h-4 w-4 text-gold" />}>
-                  <input
-                    type="number"
-                    min={0}
-                    className={inputCls}
-                    value={bags}
-                    onChange={(e) => setBags(Math.max(0, Number(e.target.value) || 0))}
-                  />
-                </Field>
-                <Field label="Vehicle Type">
-                  <select className={inputCls} defaultValue="Honda CR-V 2024">
-                    <option>Honda CR-V 2024</option>
-                  </select>
-                  <Hint>Our current fleet — spacious, comfortable, impeccably maintained.</Hint>
-                </Field>
-              </div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field label="Flight Number (optional)" icon={<Plane className="h-4 w-4 text-gold" />}>
-                  <input
-                    type="text"
-                    className={inputCls}
-                    placeholder="e.g. DL 402"
-                    value={flightNumber}
-                    onChange={(e) => setFlightNumber(e.target.value)}
-                  />
-                </Field>
-                <Field label="Additional Stop (optional)">
-                  <input
-                    type="text"
-                    className={inputCls}
-                    placeholder="Address of an extra stop"
-                    value={extraStopText}
-                    onChange={(e) => setExtraStopText(e.target.value)}
-                  />
-                </Field>
-              </div>
-              <div className="mt-4">
-                <Field label="Special Instructions">
-                  <textarea
-                    rows={3}
-                    className={inputCls}
-                    placeholder="Child seat, meet & greet, preferred route…"
-                    value={specialInstructions}
-                    onChange={(e) => setSpecialInstructions(e.target.value)}
-                  />
-                </Field>
-              </div>
-            </Fieldset>
 
             <div className="rounded-2xl border border-gold/20 bg-gold/5 p-4 text-xs leading-relaxed text-muted-foreground">
               <div className="flex items-start gap-3">
