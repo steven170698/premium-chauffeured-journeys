@@ -1,14 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { MapPin, Navigation, Calendar, Clock, Users, Briefcase, Plane, Repeat, Info, ArrowRight, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  MapPin,
+  Navigation,
+  Calendar,
+  Clock,
+  Users,
+  Briefcase,
+  Plane,
+  Repeat,
+  Info,
+  ArrowRight,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
+import type { SelectedPlace } from "@/lib/useGoogleMaps";
+import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
     meta: [
       { title: "Book a Ride — Stevie Services LLC" },
-      { name: "description", content: "Reserve professional chauffeur transportation in New York and New Jersey. Get an instant fare estimate and pay securely online." },
+      {
+        name: "description",
+        content:
+          "Reserve professional chauffeur transportation in New York and New Jersey. Get an instant fare estimate and pay securely online.",
+      },
       { property: "og:title", content: "Book a Ride — Stevie Services LLC" },
-      { property: "og:description", content: "Instant fare estimate in New York and New Jersey. Secure online payment. Confirmation by email." },
+      {
+        property: "og:description",
+        content:
+          "Instant fare estimate in New York and New Jersey. Secure online payment. Confirmation by email.",
+      },
     ],
   }),
   component: BookPage,
@@ -16,6 +42,45 @@ export const Route = createFileRoute("/book")({
 
 function BookPage() {
   const [roundTrip, setRoundTrip] = useState(false);
+  const [pickupText, setPickupText] = useState("");
+  const [destText, setDestText] = useState("");
+  const [pickup, setPickup] = useState<SelectedPlace | null>(null);
+  const [destination, setDestination] = useState<SelectedPlace | null>(null);
+  const [extraStopText, setExtraStopText] = useState("");
+  const [quote, setQuote] = useState<QuoteResult | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+  const [loadingQuote, setLoadingQuote] = useState(false);
+
+  const extraStops = useMemo(() => (extraStopText.trim() ? 1 : 0), [extraStopText]);
+  const runQuote = useServerFn(computeQuote);
+
+  useEffect(() => {
+    if (!pickup || !destination) {
+      setQuote(null);
+      setQuoteError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingQuote(true);
+    setQuoteError(null);
+    runQuote({ data: { pickup, destination, extraStops, roundTrip } })
+      .then((res) => {
+        if (!cancelled) setQuote(res);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) {
+          setQuoteError(e.message);
+          setQuote(null);
+          toast.error(e.message);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingQuote(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pickup, destination, extraStops, roundTrip, runQuote]);
 
   return (
     <div className="relative">
@@ -57,11 +122,29 @@ function BookPage() {
             <Fieldset title="Trip Details" step="02">
               <div className="space-y-4">
                 <Field label="Pickup Address" required icon={<MapPin className="h-4 w-4 text-gold" />}>
-                  <input type="text" required className={inputCls} placeholder="Start typing your pickup address…" />
-                  <Hint>Google Maps autocomplete activates when connected.</Hint>
+                  <PlaceAutocomplete
+                    value={pickupText}
+                    onChange={setPickupText}
+                    onSelect={setPickup}
+                    className={inputCls}
+                    placeholder="Start typing your pickup address…"
+                    required
+                  />
+                  <Hint>Powered by Google Maps · biased to NY / NJ.</Hint>
                 </Field>
-                <Field label="Destination Address" required icon={<Navigation className="h-4 w-4 text-gold" />}>
-                  <input type="text" required className={inputCls} placeholder="Where are you going?" />
+                <Field
+                  label="Destination Address"
+                  required
+                  icon={<Navigation className="h-4 w-4 text-gold" />}
+                >
+                  <PlaceAutocomplete
+                    value={destText}
+                    onChange={setDestText}
+                    onSelect={setDestination}
+                    className={inputCls}
+                    placeholder="Where are you going?"
+                    required
+                  />
                 </Field>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -85,7 +168,9 @@ function BookPage() {
                       <Repeat className="h-4 w-4 text-gold" />
                       Round Trip
                     </div>
-                    <div className="text-xs text-muted-foreground">Add a return leg to this reservation.</div>
+                    <div className="text-xs text-muted-foreground">
+                      Add a return leg (fare doubles).
+                    </div>
                   </div>
                 </label>
 
@@ -116,20 +201,30 @@ function BookPage() {
                   <select className={inputCls} defaultValue="Honda CR-V 2024">
                     <option>Honda CR-V 2024</option>
                   </select>
-                  <Hint>Our current fleet — spacious, comfortable, and impeccably maintained.</Hint>
+                  <Hint>Our current fleet — spacious, comfortable, impeccably maintained.</Hint>
                 </Field>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field label="Flight Number (optional)" icon={<Plane className="h-4 w-4 text-gold" />}>
                   <input type="text" className={inputCls} placeholder="e.g. DL 402" />
                 </Field>
-                <Field label="Additional Stops (optional)">
-                  <input type="text" className={inputCls} placeholder="Address of extra stop" />
+                <Field label="Additional Stop (optional)">
+                  <input
+                    type="text"
+                    className={inputCls}
+                    placeholder="Address of an extra stop"
+                    value={extraStopText}
+                    onChange={(e) => setExtraStopText(e.target.value)}
+                  />
                 </Field>
               </div>
               <div className="mt-4">
                 <Field label="Special Instructions">
-                  <textarea rows={3} className={inputCls} placeholder="Child seat, meet & greet, preferred route…" />
+                  <textarea
+                    rows={3}
+                    className={inputCls}
+                    placeholder="Child seat, meet & greet, preferred route…"
+                  />
                 </Field>
               </div>
             </Fieldset>
@@ -138,8 +233,8 @@ function BookPage() {
               <div className="flex items-start gap-3">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 <p>
-                  Tolls, waiting time, parking, and route changes may adjust the final fare.
-                  A detailed breakdown will appear once distance and time are calculated.
+                  Rates are benchmarked against Uber &amp; Lyft in NY/NJ and set roughly 10–15%
+                  lower. Tolls, waiting time, parking, and route changes may adjust the final fare.
                 </p>
               </div>
             </div>
@@ -153,40 +248,69 @@ function BookPage() {
                 <div className="mt-1 font-display text-2xl font-semibold">Your Quote</div>
               </div>
               <div className="space-y-5 p-6">
-                <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/30 p-6 text-center">
-                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-gold/10 text-gold ring-1 ring-gold/20">
-                    <Navigation className="h-5 w-5" />
+                {!pickup || !destination ? (
+                  <div className="rounded-2xl border border-dashed border-border/80 bg-secondary/30 p-6 text-center">
+                    <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-gold/10 text-gold ring-1 ring-gold/20">
+                      <Navigation className="h-5 w-5" />
+                    </div>
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      Select a pickup and destination from the suggestions to calculate distance,
+                      drive time, and fare.
+                    </p>
                   </div>
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    Enter your pickup and destination to calculate distance, drive time, and fare.
-                  </p>
-                </div>
+                ) : loadingQuote ? (
+                  <div className="flex items-center justify-center rounded-2xl border border-dashed border-border/80 bg-secondary/30 p-6 text-sm text-muted-foreground">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-gold" />
+                    Calculating your fare…
+                  </div>
+                ) : quoteError ? (
+                  <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive-foreground">
+                    {quoteError}
+                  </div>
+                ) : null}
 
-                <BreakdownRow label="Distance" value="—" />
-                <BreakdownRow label="Travel Time" value="—" />
+                <BreakdownRow
+                  label="Distance"
+                  value={quote ? `${quote.distanceMiles} mi` : "—"}
+                />
+                <BreakdownRow
+                  label="Travel Time"
+                  value={quote ? `${quote.durationMinutes} min` : "—"}
+                />
                 <div className="hairline" />
-                <BreakdownRow label="Base Fare" value="—" />
-                <BreakdownRow label="Mileage" value="—" />
-                <BreakdownRow label="Time" value="—" />
-                <BreakdownRow label="Booking Fee" value="—" />
-                <BreakdownRow label="Airport / Stops" value="—" />
-                <BreakdownRow label="Estimated Tolls" value="—" />
+                <BreakdownRow label="Base Fare" value={money(quote?.baseFare)} />
+                <BreakdownRow label="Mileage" value={money(quote?.mileage)} />
+                <BreakdownRow label="Time" value={money(quote?.time)} />
+                <BreakdownRow label="Booking Fee" value={money(quote?.bookingFee)} />
+                <BreakdownRow
+                  label="Airport Surcharge"
+                  value={money(quote?.airportSurcharge)}
+                />
+                <BreakdownRow label="Extra Stops" value={money(quote?.stopsFee)} />
+                <BreakdownRow label="Estimated Tolls" value={money(quote?.tollsEstimate)} />
+                {quote?.roundTrip && (
+                  <BreakdownRow label="Round Trip" value="× 2" />
+                )}
                 <div className="hairline" />
                 <div className="flex items-baseline justify-between">
-                  <div className="text-xs uppercase tracking-[0.28em] text-gold">Estimated Total</div>
-                  <div className="font-display text-3xl font-semibold">$—</div>
+                  <div className="text-xs uppercase tracking-[0.28em] text-gold">
+                    Estimated Total
+                  </div>
+                  <div className="font-display text-3xl font-semibold">
+                    {quote ? `$${quote.total.toFixed(2)}` : "$—"}
+                  </div>
                 </div>
 
                 <button
                   type="button"
-                  disabled
-                  className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gold-gradient px-6 py-4 text-sm font-semibold text-gold-foreground opacity-60 shadow-gold-glow disabled:cursor-not-allowed"
+                  disabled={!quote}
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gold-gradient px-6 py-4 text-sm font-semibold text-gold-foreground shadow-gold-glow disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Continue to Payment
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  You'll be able to choose full payment or a 25% deposit at checkout.
+                  Choose full payment or a 25% deposit at checkout (coming next).
                 </p>
               </div>
             </div>
@@ -200,7 +324,20 @@ function BookPage() {
 const inputCls =
   "w-full rounded-xl border border-border/70 bg-secondary/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none transition-colors focus:border-gold focus:ring-2 focus:ring-gold/30";
 
-function Fieldset({ title, step, children }: { title: string; step: string; children: React.ReactNode }) {
+function money(n: number | undefined | null) {
+  if (n === undefined || n === null) return "—";
+  return `$${n.toFixed(2)}`;
+}
+
+function Fieldset({
+  title,
+  step,
+  children,
+}: {
+  title: string;
+  step: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
       <div className="mb-5 flex items-center gap-3">
