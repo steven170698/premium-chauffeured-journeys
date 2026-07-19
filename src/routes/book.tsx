@@ -70,13 +70,13 @@ function BookPage() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
 
-  // Checkout
-  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
-  const [creatingCheckout, setCreatingCheckout] = useState(false);
+  // Submit
+  const [submitting, setSubmitting] = useState(false);
 
   const extraStops = useMemo(() => (extraStopText.trim() ? 1 : 0), [extraStopText]);
   const runQuote = useServerFn(computeQuote);
-  const runCheckout = useServerFn(createBookingCheckout);
+  const runRequest = useServerFn(requestBooking);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!pickup || !destination) {
@@ -106,16 +106,16 @@ function BookPage() {
     };
   }, [pickup, destination, extraStops, roundTrip, runQuote]);
 
-  const canPay = Boolean(
+  const canSubmit = Boolean(
     quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime,
   );
 
-  const handleContinue = async () => {
-    if (!canPay || !pickup || !destination) {
+  const handleSubmit = async () => {
+    if (!canSubmit || !pickup || !destination) {
       toast.error("Please fill in your name, email, phone, and pickup date/time.");
       return;
     }
-    setCreatingCheckout(true);
+    setSubmitting(true);
     try {
       const pickupAtIso = new Date(`${pickupDate}T${pickupTime}`).toISOString();
       const returnAtIso =
@@ -123,9 +123,8 @@ function BookPage() {
           ? new Date(`${returnDate}T${returnTime}`).toISOString()
           : null;
 
-      const result = await runCheckout({
+      const result = await runRequest({
         data: {
-          environment: getStripeEnvironment(),
           fullName,
           email,
           phone,
@@ -139,18 +138,20 @@ function BookPage() {
           extraStop: extraStopText || null,
           flightNumber: flightNumber || null,
           specialInstructions: specialInstructions || null,
-          returnUrl: `${window.location.origin}/booking/success`,
         },
       });
 
       if ("error" in result) throw new Error(result.error);
-      if (!result.clientSecret) throw new Error("Could not start checkout.");
-      setCheckoutSecret(result.clientSecret);
+      toast.success("Ride request submitted — awaiting driver approval.");
+      navigate({
+        to: "/booking/success",
+        search: { booking_id: result.bookingId },
+      });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Checkout failed";
+      const msg = e instanceof Error ? e.message : "Could not submit request";
       toast.error(msg);
     } finally {
-      setCreatingCheckout(false);
+      setSubmitting(false);
     }
   };
 
