@@ -214,10 +214,70 @@ function BookingRow({ b }: { b: any }) {
       {(b.trip_status === "pending_approval" || b.trip_status === "awaiting_payment") && (
         <ManageBooking booking={b} canEdit={b.trip_status === "pending_approval"} />
       )}
+      {b.trip_status === "completed" && <CompletedReceipt b={b} />}
       {b.trip_status === "completed" && <ReviewPrompt bookingId={b.id} />}
     </div>
   );
 }
+
+function CompletedReceipt({ b }: { b: any }) {
+  const [open, setOpen] = useState(false);
+  const estMiles = Number(b.estimated_distance_miles ?? b.distance_miles ?? 0);
+  const actMiles = Number(b.actual_distance_miles ?? 0);
+  const estMin = Number(b.estimated_duration_minutes ?? b.duration_minutes ?? 0);
+  const actMin = Number(b.actual_duration_minutes ?? 0);
+  const estFare = Number(b.estimated_fare ?? b.total ?? 0);
+  const finalFare = Number(b.final_fare ?? b.total ?? 0);
+  const paid = Number(b.amount_paid ?? 0);
+  const balance = Number(b.remaining_balance ?? Math.max(0, finalFare - paid));
+  const refund = Math.max(0, paid - finalFare);
+  const wait = Number(b.billable_waiting_minutes ?? 0);
+  const tolls = Number(b.toll_amount ?? b.toll_estimate ?? 0);
+  const parking = Number(b.parking_amount ?? 0);
+
+  return (
+    <div className="mt-3 rounded-xl border border-gold/30 bg-gold/5 p-3">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-widest text-gold">
+          <Receipt className="h-3 w-3" /> Trip receipt
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {open ? "Hide" : "View"} · ${finalFare.toFixed(2)}
+        </span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-2 text-xs">
+          <ReceiptRow label="Estimated distance" value={`${estMiles.toFixed(1)} mi`} />
+          <ReceiptRow label="Actual distance" value={actMiles ? `${actMiles.toFixed(1)} mi` : "—"} highlight />
+          <ReceiptRow label="Estimated duration" value={`${estMin} min`} />
+          <ReceiptRow label="Actual duration" value={actMin ? `${actMin} min` : "—"} highlight />
+          <ReceiptRow label="Billable waiting" value={wait ? `${wait} min` : "—"} />
+          <ReceiptRow label="Tolls" value={`$${tolls.toFixed(2)}`} />
+          <ReceiptRow label="Parking" value={`$${parking.toFixed(2)}`} />
+          <div className="my-1 h-px bg-border/60" />
+          <ReceiptRow label="Estimated fare" value={`$${estFare.toFixed(2)}`} />
+          <ReceiptRow label="Final fare" value={`$${finalFare.toFixed(2)}`} highlight />
+          <ReceiptRow label="Amount already paid" value={`$${paid.toFixed(2)}`} />
+          {balance > 0 && <ReceiptRow label="Remaining balance" value={`$${balance.toFixed(2)}`} highlight />}
+          {refund > 0 && <ReceiptRow label="Refunded" value={`$${refund.toFixed(2)}`} highlight />}
+        </div>
+      )}
+    </div>
+  );
+}
+function ReceiptRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={highlight ? "font-semibold text-foreground" : "text-foreground"}>{value}</span>
+    </div>
+  );
+}
+
 
 function ManageBooking({ booking, canEdit }: { booking: any; canEdit: boolean }) {
   const qc = useQueryClient();
