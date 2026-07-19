@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { submitReview } from "@/lib/reviews.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "My Dashboard — Stevie Services" }] }),
@@ -196,6 +198,71 @@ function BookingRow({ b }: { b: any }) {
           </div>
           <div className="mt-2 font-display text-lg font-semibold">${Number(b.total).toFixed(2)}</div>
         </div>
+      </div>
+      {b.trip_status === "completed" && <ReviewPrompt bookingId={b.id} />}
+    </div>
+  );
+}
+
+function ReviewPrompt({ bookingId }: { bookingId: string }) {
+  const qc = useQueryClient();
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [open, setOpen] = useState(false);
+  const mut = useMutation({
+    mutationFn: () => submitReview({ data: { bookingId, rating, comment: comment || null } }),
+    onSuccess: () => {
+      toast.success("Thanks for the review — it will appear once approved.");
+      setOpen(false);
+      setRating(0);
+      setComment("");
+      qc.invalidateQueries({ queryKey: ["my-bookings"] });
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-gold/40 px-3 py-1 text-[11px] uppercase tracking-widest text-gold hover:bg-gold/10"
+      >
+        <Star className="h-3 w-3" /> Leave a review
+      </button>
+    );
+  }
+  return (
+    <div className="mt-3 rounded-xl border border-gold/30 bg-card p-3">
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => setRating(n)}
+            className={`p-1 ${n <= rating ? "text-gold" : "text-muted-foreground/40"}`}
+          >
+            <Star className={`h-5 w-5 ${n <= rating ? "fill-current" : ""}`} />
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={3}
+        placeholder="How was your ride? (optional)"
+        className="mt-2 w-full rounded-lg border border-border/60 bg-background p-2 text-sm outline-none focus:border-gold/60"
+      />
+      <div className="mt-2 flex justify-end gap-2">
+        <button type="button" onClick={() => setOpen(false)} className="rounded-full px-3 py-1 text-xs text-muted-foreground hover:text-foreground">
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={rating === 0 || mut.isPending}
+          onClick={() => mut.mutate()}
+          className="rounded-full bg-gold-gradient px-4 py-1.5 text-xs font-semibold text-gold-foreground disabled:opacity-50"
+        >
+          {mut.isPending ? "Sending…" : "Submit"}
+        </button>
       </div>
     </div>
   );
