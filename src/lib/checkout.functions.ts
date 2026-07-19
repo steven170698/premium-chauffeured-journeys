@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { createStripeClient, getStripeErrorMessage, type StripeEnv } from "./stripe.server";
 
@@ -30,10 +31,51 @@ const checkoutInputSchema = z.object({
 
 type CheckoutResult = { clientSecret: string; bookingId: string } | { error: string };
 
+/**
+ * Best-effort read of the authenticated user id from the incoming request's
+ * Bearer token. Returns null for guests. Never throws — auth is optional here
+ * because the booking flow supports both signed-in customers and guests.
+ */
+async function tryReadUserId(): Promise<string | null> {
+  try {
+    const req = getRequest();
+    const auth = req?.headers.get("authorization");
+    if (!auth || !auth.startsWith("Bearer ")) return null;
+    const token = auth.slice(7).trim();
+    if (!token || token.split(".").length !== 3) return null;
+
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!url || !key) return null;
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const client = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+      global: {
+        fetch: (input, init) => {
+          const h = new Headers(init?.headers);
+          if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
+            h.delete("Authorization");
+          }
+          h.set("apikey", key);
+          return fetch(input, { ...init, headers: h });
+        },
+      },
+    });
+    const { data } = await client.auth.getClaims(token);
+    return data?.claims?.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export const createBookingCheckout = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => checkoutInputSchema.parse(data))
   .handler(async ({ data }): Promise<CheckoutResult> => {
     try {
+      // 0. Best-effort caller identification (optional)
+      const userId = await tryReadUserId();
+
       // 1. Recompute quote server-side (never trust the client)
       const { computeQuoteInternal } = await import("./quote.server");
       const quote = await computeQuoteInternal({
@@ -43,7 +85,7 @@ export const createBookingCheckout = createServerFn({ method: "POST" })
         roundTrip: data.isRoundTrip,
       });
 
-      // 2. Insert booking row (admin client bypasses RLS — guest bookings allowed)
+      // 2. Insert booking row
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
       const pickupAt = new Date(data.pickupAt);
@@ -54,6 +96,7 @@ export const createBookingCheckout = createServerFn({ method: "POST" })
       const { data: booking, error: bookingError } = await supabaseAdmin
         .from("bookings")
         .insert({
+          user_id: userId, // links booking to signed-in customer when available
           full_name: data.fullName,
           email: data.email,
           phone: data.phone,
@@ -121,6 +164,7 @@ export const createBookingCheckout = createServerFn({ method: "POST" })
         metadata: {
           booking_id: booking.id,
           reservation_number: booking.reservation_number,
+          user_id: userId ?? "",
         },
       });
 
