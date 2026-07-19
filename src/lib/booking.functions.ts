@@ -140,6 +140,9 @@ export const requestBooking = createServerFn({ method: "POST" })
           special_instructions: data.specialInstructions || null,
           distance_miles: quote.distanceMiles,
           duration_minutes: quote.durationMinutes,
+          estimated_distance_miles: quote.distanceMiles,
+          estimated_duration_minutes: quote.durationMinutes,
+          estimated_fare: quote.total,
           estimated_end_at: estimatedEndAt.toISOString(),
           base_fare: quote.baseFare,
           mileage_charge: quote.mileage,
@@ -153,7 +156,11 @@ export const requestBooking = createServerFn({ method: "POST" })
           trip_status: initialStatus,
           payment_status: "unpaid",
           approval_deadline_at: approvalDeadline.toISOString(),
+          customer_fare_policy_accepted_at: data.fareAdjustmentPolicyAccepted
+            ? new Date().toISOString()
+            : null,
         })
+
         .select("id, reservation_number, total, trip_status, approval_deadline_at")
         .single();
 
