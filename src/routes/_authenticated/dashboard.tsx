@@ -273,6 +273,7 @@ function PayNow({ bookingId, deadlineAt }: { bookingId: string; deadlineAt?: str
   );
 }
 
+function ReviewPrompt({ bookingId }: { bookingId: string }) {
   const qc = useQueryClient();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
