@@ -6,9 +6,6 @@ import {
   Navigation,
   Calendar,
   Clock,
-  Users,
-  Briefcase,
-  Plane,
   Repeat,
   Info,
   ArrowRight,
@@ -20,6 +17,7 @@ import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import type { SelectedPlace } from "@/lib/useGoogleMaps";
 import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
 import { requestBooking } from "@/lib/booking.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
