@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -14,15 +14,12 @@ import {
   ArrowRight,
   Sparkles,
   Loader2,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import type { SelectedPlace } from "@/lib/useGoogleMaps";
 import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
-import { createBookingCheckout } from "@/lib/checkout.functions";
-import { getStripe, getStripeEnvironment } from "@/lib/stripe";
+import { requestBooking } from "@/lib/booking.functions";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
