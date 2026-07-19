@@ -220,6 +220,7 @@ function PayNow({ bookingId, deadlineAt }: { bookingId: string; deadlineAt?: str
       const res = await startBookingPayment({
         data: {
           bookingId,
+          environment: getStripeEnvironment(),
           returnUrl: `${window.location.origin}/booking/success?booking_id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
         },
       });
