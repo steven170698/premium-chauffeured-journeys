@@ -2,13 +2,16 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, X } from "lucide-react";
+import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, X, Pencil, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { submitReview } from "@/lib/reviews.functions";
 import { startBookingPayment } from "@/lib/payment.functions";
+import { cancelMyBooking, updateMyBooking } from "@/lib/booking-customer.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
+import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
+import type { SelectedPlace } from "@/lib/useGoogleMaps";
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -206,7 +209,211 @@ function BookingRow({ b }: { b: any }) {
         </div>
       </div>
       {b.trip_status === "awaiting_payment" && <PayNow bookingId={b.id} deadlineAt={b.payment_deadline_at} />}
+      {(b.trip_status === "pending_approval" || b.trip_status === "awaiting_payment") && (
+        <ManageBooking booking={b} canEdit={b.trip_status === "pending_approval"} />
+      )}
       {b.trip_status === "completed" && <ReviewPrompt bookingId={b.id} />}
+    </div>
+  );
+}
+
+function ManageBooking({ booking, canEdit }: { booking: any; canEdit: boolean }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const cancelMut = useMutation({
+    mutationFn: async () => {
+      const res = await cancelMyBooking({ data: { bookingId: booking.id } });
+      if ("error" in res) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: () => {
+      toast.success("Ride canceled.");
+      qc.invalidateQueries({ queryKey: ["my-bookings"] });
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {canEdit && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 px-3 py-1 text-[11px] uppercase tracking-widest text-gold hover:bg-gold/10"
+        >
+          <Pencil className="h-3 w-3" /> Edit ride
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          if (confirm("Cancel this ride? This cannot be undone.")) cancelMut.mutate();
+        }}
+        disabled={cancelMut.isPending}
+        className="inline-flex items-center gap-1.5 rounded-full border border-destructive/40 px-3 py-1 text-[11px] uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-50"
+      >
+        <Ban className="h-3 w-3" /> {cancelMut.isPending ? "Canceling…" : "Cancel ride"}
+      </button>
+      {editing && <EditBookingModal booking={booking} onClose={() => setEditing(false)} />}
+    </div>
+  );
+}
+
+function toLocalInput(iso: string) {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [pickupAddr, setPickupAddr] = useState<string>(booking.pickup_address);
+  const [pickup, setPickup] = useState<SelectedPlace | null>(
+    booking.pickup_lat && booking.pickup_lng
+      ? {
+          placeId: booking.pickup_place_id || booking.pickup_address,
+          address: booking.pickup_address,
+          lat: Number(booking.pickup_lat),
+          lng: Number(booking.pickup_lng), isAirport: false,
+        }
+      : null,
+  );
+  const [destAddr, setDestAddr] = useState<string>(booking.destination_address);
+  const [dest, setDest] = useState<SelectedPlace | null>(
+    booking.destination_lat && booking.destination_lng
+      ? {
+          placeId: booking.destination_place_id || booking.destination_address,
+          address: booking.destination_address,
+          lat: Number(booking.destination_lat),
+          lng: Number(booking.destination_lng), isAirport: false,
+        }
+      : null,
+  );
+  const [pickupAt, setPickupAt] = useState<string>(toLocalInput(booking.pickup_at));
+  const [passengers, setPassengers] = useState<number>(booking.passengers ?? 1);
+  const [bags, setBags] = useState<number>(booking.bags ?? 0);
+  const [notes, setNotes] = useState<string>(booking.special_instructions ?? "");
+
+  const mut = useMutation({
+    mutationFn: async () => {
+      if (!pickup || !dest) throw new Error("Please pick both addresses from the suggestions.");
+      const res = await updateMyBooking({
+        data: {
+          bookingId: booking.id,
+          pickup,
+          destination: dest,
+          pickupAt: new Date(pickupAt).toISOString(),
+          isRoundTrip: !!booking.is_round_trip,
+          returnAt: booking.return_at,
+          passengers,
+          bags,
+          extraStop: booking.extra_stops ?? null,
+          specialInstructions: notes || null,
+        },
+      });
+      if ("error" in res) throw new Error(res.error);
+      return res;
+    },
+    onSuccess: (res) => {
+      toast.success(`Ride updated — new total $${Number(res.total).toFixed(2)}`);
+      qc.invalidateQueries({ queryKey: ["my-bookings"] });
+      onClose();
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-4">
+      <div className="relative mt-10 w-full max-w-xl rounded-3xl border border-gold/30 bg-card p-6 shadow-elegant">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-background/80 text-muted-foreground hover:text-foreground"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <h3 className="font-display text-xl font-semibold">Edit ride</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          You can edit while your ride is pending driver approval. The fare will be recalculated.
+        </p>
+        <div className="mt-4 space-y-3">
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">Pickup</label>
+            <PlaceAutocomplete
+              value={pickupAddr}
+              onChange={setPickupAddr}
+              onSelect={(p) => { setPickup(p); if (p) setPickupAddr(p.address); }}
+              placeholder="Pickup address"
+              className="mt-1 w-full rounded-lg border border-border/60 bg-background p-2 text-sm outline-none focus:border-gold/60"
+            />
+          </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">Destination</label>
+            <PlaceAutocomplete
+              value={destAddr}
+              onChange={setDestAddr}
+              onSelect={(p) => { setDest(p); if (p) setDestAddr(p.address); }}
+              placeholder="Destination address"
+              className="mt-1 w-full rounded-lg border border-border/60 bg-background p-2 text-sm outline-none focus:border-gold/60"
+            />
+          </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">Pickup date & time</label>
+            <input
+              type="datetime-local"
+              value={pickupAt}
+              onChange={(e) => setPickupAt(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-border/60 bg-background p-2 text-sm outline-none focus:border-gold/60"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">Passengers</label>
+              <input
+                type="number"
+                min={1}
+                max={8}
+                value={passengers}
+                onChange={(e) => setPassengers(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-border/60 bg-background p-2 text-sm outline-none focus:border-gold/60"
+              />
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">Bags</label>
+              <input
+                type="number"
+                min={0}
+                max={20}
+                value={bags}
+                onChange={(e) => setBags(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-border/60 bg-background p-2 text-sm outline-none focus:border-gold/60"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">Notes</label>
+            <textarea
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-border/60 bg-background p-2 text-sm outline-none focus:border-gold/60"
+            />
+          </div>
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground">
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={mut.isPending}
+            onClick={() => mut.mutate()}
+            className="rounded-full bg-gold-gradient px-5 py-2 text-xs font-semibold text-gold-foreground shadow-gold-glow disabled:opacity-50"
+          >
+            {mut.isPending ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
