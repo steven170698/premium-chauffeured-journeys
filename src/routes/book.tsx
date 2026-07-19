@@ -40,7 +40,9 @@ export const Route = createFileRoute("/book")({
 });
 
 function BookPage() {
-  // Contact
+  // Auth / contact
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -56,12 +58,12 @@ function BookPage() {
   const [returnDate, setReturnDate] = useState("");
   const [returnTime, setReturnTime] = useState("");
 
-  // Details
-  const [passengers, setPassengers] = useState(1);
-  const [bags, setBags] = useState(0);
-  const [flightNumber, setFlightNumber] = useState("");
-  const [extraStopText, setExtraStopText] = useState("");
-  const [specialInstructions, setSpecialInstructions] = useState("");
+  // Details (defaults kept for signed-in users)
+  const [passengers] = useState(1);
+  const [bags] = useState(0);
+  const [flightNumber] = useState("");
+  const [extraStopText] = useState("");
+  const [specialInstructions] = useState("");
 
   // Quote
   const [quote, setQuote] = useState<QuoteResult | null>(null);
@@ -75,6 +77,26 @@ function BookPage() {
   const runQuote = useServerFn(computeQuote);
   const runRequest = useServerFn(requestBooking);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const user = data.user;
+      if (user) {
+        setIsSignedIn(true);
+        const meta = (user.user_metadata ?? {}) as { full_name?: string; phone?: string };
+        setFullName(meta.full_name ?? "");
+        setEmail(user.email ?? "");
+        setPhone(meta.phone ?? "");
+      }
+      setAuthChecked(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!pickup || !destination) {
