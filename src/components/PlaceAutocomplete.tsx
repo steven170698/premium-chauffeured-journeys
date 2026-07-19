@@ -18,9 +18,10 @@ type Props = {
 };
 
 const NY_NJ_BIAS = {
-  // Rough bounding box around NY / NJ
-  low: { latitude: 39.4, longitude: -75.6 },
-  high: { latitude: 41.6, longitude: -73.0 },
+  north: 41.6,
+  south: 39.4,
+  east: -73.0,
+  west: -75.6,
 };
 
 export function PlaceAutocomplete({
