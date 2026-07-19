@@ -2,9 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy } from "lucide-react";
+import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, X } from "lucide-react";
 import { toast } from "sonner";
 import { submitReview } from "@/lib/reviews.functions";
+import { startBookingPayment } from "@/lib/payment.functions";
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
+import { getStripe } from "@/lib/stripe";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "My Dashboard — Stevie Services" }] }),
