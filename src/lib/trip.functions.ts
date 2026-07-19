@@ -313,7 +313,7 @@ export const endTrip = createServerFn({ method: "POST" })
         amount_paid: newAmountPaid,
         remaining_balance: newRemaining,
         balance_due: newRemaining,
-        payment_status: paymentStatus,
+        payment_status: paymentStatus as any,
       })
       .eq("id", data.bookingId)
       .eq("trip_status", "picked_up");
