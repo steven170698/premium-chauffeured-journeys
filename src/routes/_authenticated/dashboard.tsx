@@ -6,7 +6,7 @@ import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, 
 import { toast } from "sonner";
 import { submitReview } from "@/lib/reviews.functions";
 import { startBookingPayment } from "@/lib/payment.functions";
-import { cancelMyBooking, updateMyBooking } from "@/lib/booking-customer.functions";
+import { cancelMyBooking, updateMyBooking, payTripBalance } from "@/lib/booking-customer.functions";
 import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
