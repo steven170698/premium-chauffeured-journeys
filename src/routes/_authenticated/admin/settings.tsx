@@ -47,6 +47,9 @@ function AdminSettings() {
         deposit_percentage: String(data.deposit_percentage ?? 25),
         require_approval: Boolean(data.require_approval),
         approval_deadline_minutes: String(data.approval_deadline_minutes ?? 60),
+        payment_window_minutes: String((data as any).payment_window_minutes ?? 30),
+        hold_during_approval: Boolean((data as any).hold_during_approval ?? true),
+        auto_confirm_future_bookings: Boolean((data as any).auto_confirm_future_bookings ?? false),
         sms_enabled: Boolean(data.sms_enabled),
         google_calendar_id: String(data.google_calendar_id ?? ""),
       });
