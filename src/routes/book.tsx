@@ -437,63 +437,28 @@ function BookPage() {
 
                 <button
                   type="button"
-                  onClick={handleContinue}
-                  disabled={!canPay || creatingCheckout}
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || submitting}
                   className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gold-gradient px-6 py-4 text-sm font-semibold text-gold-foreground shadow-gold-glow disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {creatingCheckout ? (
+                  {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Preparing checkout…
+                      Submitting request…
                     </>
                   ) : (
                     <>
-                      Continue to Payment
+                      Request This Ride
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </>
                   )}
                 </button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  Secure payment powered by Stripe. Pay the full fare to confirm your reservation.
+                  No charge yet. We'll review your request and send a secure payment link once your ride is approved.
                 </p>
               </div>
             </div>
           </aside>
-        </div>
-      </div>
-
-      {checkoutSecret && (
-        <CheckoutModal
-          clientSecret={checkoutSecret}
-          onClose={() => setCheckoutSecret(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-function CheckoutModal({
-  clientSecret,
-  onClose,
-}: {
-  clientSecret: string;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-4">
-      <div className="relative mt-10 w-full max-w-3xl overflow-hidden rounded-3xl border border-gold/30 bg-card shadow-elegant">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-background/80 text-muted-foreground hover:text-foreground"
-          aria-label="Close checkout"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <div className="p-2 sm:p-4">
-          <EmbeddedCheckoutProvider stripe={getStripe()} options={{ clientSecret }}>
-            <EmbeddedCheckout />
-          </EmbeddedCheckoutProvider>
         </div>
       </div>
     </div>
