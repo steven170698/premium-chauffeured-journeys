@@ -14,8 +14,8 @@ type StatusFilter =
   | "all"
   | "pending_approval"
   | "confirmed"
-  | "en_route"
-  | "arrived"
+  | "driver_en_route"
+  | "driver_arrived"
   | "picked_up"
   | "completed"
   | "canceled";
@@ -26,10 +26,10 @@ const NEXT_ACTIONS: Record<string, Array<{ label: string; to: string; variant?: 
     { label: "Decline", to: "canceled", variant: "danger" },
   ],
   confirmed: [
-    { label: "En route", to: "en_route", variant: "primary" },
+    { label: "En route", to: "driver_en_route", variant: "primary" },
     { label: "Cancel", to: "canceled", variant: "danger" },
   ],
-  en_route: [{ label: "Arrived", to: "arrived", variant: "primary" }],
+  en_route: [{ label: "Arrived", to: "driver_arrived", variant: "primary" }],
   arrived: [{ label: "Picked up", to: "picked_up", variant: "primary" }],
   picked_up: [{ label: "Complete ride", to: "completed", variant: "primary" }],
 };
@@ -65,8 +65,8 @@ function AdminBookings() {
     "all",
     "pending_approval",
     "confirmed",
-    "en_route",
-    "arrived",
+    "driver_en_route",
+    "driver_arrived",
     "picked_up",
     "completed",
     "canceled",

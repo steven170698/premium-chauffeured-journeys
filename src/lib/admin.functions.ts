@@ -43,7 +43,7 @@ export const getAdminStats = createServerFn({ method: "POST" })
     const { count: upcomingCount } = await supabaseAdmin
       .from("bookings")
       .select("id", { count: "exact", head: true })
-      .in("trip_status", ["confirmed", "en_route", "arrived", "picked_up"])
+      .in("trip_status", ["confirmed", "driver_en_route", "driver_arrived", "picked_up"])
       .gte("pickup_at", now.toISOString());
 
     const { count: completedCount } = await supabaseAdmin
@@ -70,8 +70,8 @@ export const getAdminStats = createServerFn({ method: "POST" })
 const TRIP_STATUSES = [
   "pending_approval",
   "confirmed",
-  "en_route",
-  "arrived",
+  "driver_en_route",
+  "driver_arrived",
   "picked_up",
   "completed",
   "canceled",
@@ -194,7 +194,7 @@ export const listCalendarBookings = createServerFn({ method: "POST" })
       .select(
         "id, reservation_number, full_name, pickup_at, estimated_end_at, trip_status, pickup_address, destination_address",
       )
-      .in("trip_status", ["confirmed", "en_route", "arrived", "picked_up", "pending_approval"])
+      .in("trip_status", ["confirmed", "driver_en_route", "driver_arrived", "picked_up", "pending_approval"])
       .gte("pickup_at", data.start)
       .lte("pickup_at", data.end)
       .order("pickup_at", { ascending: true });
