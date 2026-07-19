@@ -825,7 +825,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_pricing: {
+        Row: {
+          airport_surcharge: number | null
+          base_fare: number | null
+          booking_fee: number | null
+          per_mile_rate: number | null
+          per_minute_rate: number | null
+          stop_fee: number | null
+        }
+        Insert: {
+          airport_surcharge?: number | null
+          base_fare?: number | null
+          booking_fee?: number | null
+          per_mile_rate?: number | null
+          per_minute_rate?: number | null
+          stop_fee?: number | null
+        }
+        Update: {
+          airport_surcharge?: number | null
+          base_fare?: number | null
+          booking_fee?: number | null
+          per_mile_rate?: number | null
+          per_minute_rate?: number | null
+          stop_fee?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -835,6 +861,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      mark_abandoned_bookings: { Args: never; Returns: number }
     }
     Enums: {
       app_role: "admin" | "customer"
