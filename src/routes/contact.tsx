@@ -5,9 +5,9 @@ export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
       { title: "Contact — Stevie Services LLC" },
-      { name: "description", content: "Reach Stevie Services LLC. Call 929-299-9747 or send us a message. Available 24/7 in New York." },
+      { name: "description", content: "Reach Stevie Services LLC. Call 929-299-9747 or send us a message. Available 24/7 in New York and New Jersey." },
       { property: "og:title", content: "Contact — Stevie Services LLC" },
-      { property: "og:description", content: "Call 929-299-9747 or send us a message. Available 24/7." },
+      { property: "og:description", content: "Call 929-299-9747 or send us a message. Available 24/7 in New York and New Jersey." },
     ],
   }),
   component: ContactPage,
@@ -70,7 +70,7 @@ function ContactPage() {
               <div>
                 <div className="font-display text-lg font-semibold">Service Area</div>
                 <p className="text-sm text-muted-foreground">
-                  Based in New York — serving NYC, JFK, LGA, EWR, and long-distance destinations across the Northeast.
+                  Based in New York and New Jersey — serving NYC, JFK, LGA, EWR, and long-distance destinations across the Northeast.
                 </p>
               </div>
             </div>

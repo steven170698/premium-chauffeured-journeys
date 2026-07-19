@@ -6,9 +6,9 @@ export const Route = createFileRoute("/book")({
   head: () => ({
     meta: [
       { title: "Book a Ride — Stevie Services LLC" },
-      { name: "description", content: "Reserve professional chauffeur transportation. Get an instant fare estimate and pay securely online." },
+      { name: "description", content: "Reserve professional chauffeur transportation in New York and New Jersey. Get an instant fare estimate and pay securely online." },
       { property: "og:title", content: "Book a Ride — Stevie Services LLC" },
-      { property: "og:description", content: "Instant fare estimate. Secure online payment. Confirmation by email." },
+      { property: "og:description", content: "Instant fare estimate in New York and New Jersey. Secure online payment. Confirmation by email." },
     ],
   }),
   component: BookPage,

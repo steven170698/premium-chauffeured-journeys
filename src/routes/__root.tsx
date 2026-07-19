@@ -83,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Professional, reliable, comfortable chauffeur service. Airport, business, event, and long-distance transportation. Book instantly online.",
+          "Professional, reliable, comfortable chauffeur service in New York and New Jersey. Airport, business, event, and long-distance transportation. Book instantly online.",
       },
       { name: "author", content: "Stevie Services LLC" },
       { name: "theme-color", content: "#0a0a0a" },
@@ -169,7 +169,7 @@ function SiteFooter() {
               <div className="font-display text-lg font-semibold">Stevie Services LLC</div>
             </div>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Professional, reliable, and comfortable private transportation across New York and beyond.
+              Professional, reliable, and comfortable private transportation across New York, New Jersey, and beyond.
             </p>
           </div>
           <div>
@@ -177,7 +177,7 @@ function SiteFooter() {
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
               <li><a href="tel:9292999747" className="hover:text-foreground">929-299-9747</a></li>
               <li><a href="https://StevieServicesLLC.com" className="hover:text-foreground">StevieServicesLLC.com</a></li>
-              <li>New York, NY · America/New_York</li>
+              <li>New York, NY & New Jersey · America/New_York</li>
             </ul>
           </div>
           <div>
