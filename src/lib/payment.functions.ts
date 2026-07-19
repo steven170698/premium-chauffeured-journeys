@@ -7,7 +7,13 @@ import {
   type StripeEnv,
 } from "./stripe.server";
 
-import { assertAdmin } from "./authz";
+async function assertAdmin(context: { supabase: any; userId: string }) {
+  const { data } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (!data) throw new Error("Forbidden");
+}
 
 async function loadBooking(id: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

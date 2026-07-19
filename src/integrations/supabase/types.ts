@@ -1056,6 +1056,13 @@ export type Database = {
       }
     }
     Functions: {
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       mark_abandoned_bookings: { Args: never; Returns: number }
     }
     Enums: {
