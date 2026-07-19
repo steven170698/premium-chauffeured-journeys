@@ -22,62 +22,73 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               id?: string;
               payment_intent?: string | null;
               amount_total?: number | null;
-              currency?: string | null;
-              metadata?: { booking_id?: string; user_id?: string } | null;
-            };
-            const bookingId = session.metadata?.booking_id;
-            if (bookingId) {
-              // Read approval mode from admin_settings; only auto-confirm when
-              // require_approval is off. Manual-approval mode leaves the trip
-              // in pending_approval and admin confirms from the dashboard.
-              const { data: settings } = await supabaseAdmin
-                .from("admin_settings")
-                .select("require_approval")
-                .eq("id", 1)
-                .maybeSingle();
-              const requireApproval = Boolean(settings?.require_approval);
-
-              const paid = (session.amount_total ?? 0) / 100;
-              const stripePi =
-                typeof session.payment_intent === "string" ? session.payment_intent : null;
-              if (requireApproval) {
-                await supabaseAdmin
-                  .from("bookings")
-                  .update({
-                    payment_status: "paid",
-                    amount_paid: paid,
-                    balance_due: 0,
-                    stripe_payment_intent: stripePi,
-                  })
-                  .eq("id", bookingId);
-              } else {
-                await supabaseAdmin
-                  .from("bookings")
-                  .update({
-                    payment_status: "paid",
-                    amount_paid: paid,
-                    balance_due: 0,
-                    stripe_payment_intent: stripePi,
-                    trip_status: "confirmed",
-                  })
-                  .eq("id", bookingId);
-              }
-            } else {
-              console.warn("checkout.session.completed with no booking_id");
-            }
-          } else if (event.type === "transaction.payment_failed") {
-            const session = event.data.object as {
               metadata?: { booking_id?: string } | null;
             };
             const bookingId = session.metadata?.booking_id;
-            if (bookingId) {
-              // No dedicated 'failed' payment_status enum value — leave as
-              // unpaid and cancel the trip so the slot frees up.
+            if (!bookingId) {
+              console.warn("webhook: missing booking_id in metadata");
+              return Response.json({ received: true });
+            }
+
+            // Load current booking to re-check status and expiry.
+            const { data: booking } = await supabaseAdmin
+              .from("bookings")
+              .select(
+                "id, trip_status, payment_deadline_at, pickup_at, estimated_end_at",
+              )
+              .eq("id", bookingId)
+              .maybeSingle();
+            if (!booking) {
+              console.warn("webhook: booking not found", bookingId);
+              return Response.json({ received: true });
+            }
+
+            const paid = (session.amount_total ?? 0) / 100;
+            const stripePi =
+              typeof session.payment_intent === "string" ? session.payment_intent : null;
+
+            // Only confirm if the booking is still awaiting payment and not past its deadline.
+            const stillAwaiting = booking.trip_status === "awaiting_payment";
+            const withinWindow =
+              !booking.payment_deadline_at ||
+              new Date(booking.payment_deadline_at) >= new Date();
+
+            if (stillAwaiting && withinWindow) {
+              const { error } = await supabaseAdmin
+                .from("bookings")
+                .update({
+                  payment_status: "paid",
+                  amount_paid: paid,
+                  balance_due: 0,
+                  stripe_payment_intent: stripePi,
+                  trip_status: "confirmed",
+                })
+                .eq("id", bookingId)
+                .eq("trip_status", "awaiting_payment");
+              if (error) {
+                // e.g. overlap trigger blocked (someone took the slot). Refund.
+                console.error("webhook confirm failed:", error);
+              }
+            } else {
+              // Payment landed after we already expired/declined the booking.
+              // Record the payment so admin can refund from the dashboard.
               await supabaseAdmin
                 .from("bookings")
-                .update({ trip_status: "canceled" })
+                .update({
+                  payment_status: "paid",
+                  amount_paid: paid,
+                  stripe_payment_intent: stripePi,
+                })
                 .eq("id", bookingId);
+              console.warn(
+                "webhook: payment received for stale booking, needs refund",
+                bookingId,
+                booking.trip_status,
+              );
             }
+          } else if (event.type === "transaction.payment_failed") {
+            // Nothing to do — booking stays in awaiting_payment until customer
+            // retries or the payment deadline expires it.
           }
 
           return Response.json({ received: true });
