@@ -6,9 +6,6 @@ import {
   Navigation,
   Calendar,
   Clock,
-  Users,
-  Briefcase,
-  Plane,
   Repeat,
   Info,
   ArrowRight,
@@ -20,6 +17,7 @@ import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import type { SelectedPlace } from "@/lib/useGoogleMaps";
 import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
 import { requestBooking } from "@/lib/booking.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -42,7 +40,9 @@ export const Route = createFileRoute("/book")({
 });
 
 function BookPage() {
-  // Contact
+  // Auth / contact
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -58,12 +58,12 @@ function BookPage() {
   const [returnDate, setReturnDate] = useState("");
   const [returnTime, setReturnTime] = useState("");
 
-  // Details
-  const [passengers, setPassengers] = useState(1);
-  const [bags, setBags] = useState(0);
-  const [flightNumber, setFlightNumber] = useState("");
-  const [extraStopText, setExtraStopText] = useState("");
-  const [specialInstructions, setSpecialInstructions] = useState("");
+  // Details (defaults kept for signed-in users)
+  const [passengers] = useState(1);
+  const [bags] = useState(0);
+  const [flightNumber] = useState("");
+  const [extraStopText] = useState("");
+  const [specialInstructions] = useState("");
 
   // Quote
   const [quote, setQuote] = useState<QuoteResult | null>(null);
@@ -77,6 +77,26 @@ function BookPage() {
   const runQuote = useServerFn(computeQuote);
   const runRequest = useServerFn(requestBooking);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (cancelled) return;
+      const user = data.user;
+      if (user) {
+        setIsSignedIn(true);
+        const meta = (user.user_metadata ?? {}) as { full_name?: string; phone?: string };
+        setFullName(meta.full_name ?? "");
+        setEmail(user.email ?? "");
+        setPhone(meta.phone ?? "");
+      }
+      setAuthChecked(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!pickup || !destination) {
@@ -182,44 +202,48 @@ function BookPage() {
               handleSubmit();
             }}
           >
-            <Fieldset title="Contact Information" step="01">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Full Name" required>
-                  <input
-                    type="text"
-                    required
-                    className={inputCls}
-                    placeholder="Jane Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
-                </Field>
-                <Field label="Phone Number" required>
-                  <input
-                    type="tel"
-                    required
-                    className={inputCls}
-                    placeholder="(929) 555-0000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </Field>
-                <Field label="Email Address" required className="sm:col-span-2">
-                  <input
-                    type="email"
-                    required
-                    className={inputCls}
-                    placeholder="jane@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </Field>
-              </div>
-            </Fieldset>
+            {!isSignedIn && authChecked && (
+              <>
+                <Fieldset title="Contact Information" step="01">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Full Name" required>
+                      <input
+                        type="text"
+                        required
+                        className={inputCls}
+                        placeholder="Jane Doe"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Phone Number" required>
+                      <input
+                        type="tel"
+                        required
+                        className={inputCls}
+                        placeholder="(929) 555-0000"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Email Address" required className="sm:col-span-2">
+                      <input
+                        type="email"
+                        required
+                        className={inputCls}
+                        placeholder="jane@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                </Fieldset>
 
-            <Divider />
+                <Divider />
+              </>
+            )}
 
-            <Fieldset title="Trip Details" step="02">
+            <Fieldset title="Trip Details" step={isSignedIn ? "01" : "02"}>
               <div className="space-y-4">
                 <Field label="Pickup Address" required icon={<MapPin className="h-4 w-4 text-gold" />}>
                   <PlaceAutocomplete
@@ -309,67 +333,6 @@ function BookPage() {
               </div>
             </Fieldset>
 
-            <Divider />
-
-            <Fieldset title="Passengers & Vehicle" step="03">
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Passengers" icon={<Users className="h-4 w-4 text-gold" />}>
-                  <input
-                    type="number"
-                    min={1}
-                    className={inputCls}
-                    value={passengers}
-                    onChange={(e) => setPassengers(Math.max(1, Number(e.target.value) || 1))}
-                  />
-                </Field>
-                <Field label="Bags" icon={<Briefcase className="h-4 w-4 text-gold" />}>
-                  <input
-                    type="number"
-                    min={0}
-                    className={inputCls}
-                    value={bags}
-                    onChange={(e) => setBags(Math.max(0, Number(e.target.value) || 0))}
-                  />
-                </Field>
-                <Field label="Vehicle Type">
-                  <select className={inputCls} defaultValue="Honda CR-V 2024">
-                    <option>Honda CR-V 2024</option>
-                  </select>
-                  <Hint>Our current fleet — spacious, comfortable, impeccably maintained.</Hint>
-                </Field>
-              </div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <Field label="Flight Number (optional)" icon={<Plane className="h-4 w-4 text-gold" />}>
-                  <input
-                    type="text"
-                    className={inputCls}
-                    placeholder="e.g. DL 402"
-                    value={flightNumber}
-                    onChange={(e) => setFlightNumber(e.target.value)}
-                  />
-                </Field>
-                <Field label="Additional Stop (optional)">
-                  <input
-                    type="text"
-                    className={inputCls}
-                    placeholder="Address of an extra stop"
-                    value={extraStopText}
-                    onChange={(e) => setExtraStopText(e.target.value)}
-                  />
-                </Field>
-              </div>
-              <div className="mt-4">
-                <Field label="Special Instructions">
-                  <textarea
-                    rows={3}
-                    className={inputCls}
-                    placeholder="Child seat, meet & greet, preferred route…"
-                    value={specialInstructions}
-                    onChange={(e) => setSpecialInstructions(e.target.value)}
-                  />
-                </Field>
-              </div>
-            </Fieldset>
 
             <div className="rounded-2xl border border-gold/20 bg-gold/5 p-4 text-xs leading-relaxed text-muted-foreground">
               <div className="flex items-start gap-3">
