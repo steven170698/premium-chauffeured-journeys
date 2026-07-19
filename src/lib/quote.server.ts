@@ -111,10 +111,16 @@ export async function computeQuoteInternal(input: {
   });
 
   const { data: settings, error } = await supabase
-    .from("admin_settings")
+    .from("public_pricing" as never)
     .select("base_fare, per_mile_rate, per_minute_rate, booking_fee, airport_surcharge, stop_fee")
-    .eq("id", 1)
-    .maybeSingle();
+    .maybeSingle<{
+      base_fare: number;
+      per_mile_rate: number;
+      per_minute_rate: number;
+      booking_fee: number;
+      airport_surcharge: number;
+      stop_fee: number;
+    }>();
 
   if (error || !settings) throw new Error("Pricing is not configured yet.");
 
