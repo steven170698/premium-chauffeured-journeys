@@ -129,8 +129,9 @@ function BookPage() {
   }, [pickup, destination, extraStops, roundTrip, runQuote]);
 
   const canSubmit = Boolean(
-    quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime,
+    quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime && fareAccepted,
   );
+
 
   const handleSubmit = async () => {
     if (!canSubmit || !pickup || !destination) {
