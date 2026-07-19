@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listAdminBookings, updateBookingStatus } from "@/lib/admin.functions";
 import { approveBooking, declineBooking } from "@/lib/payment.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 import { MapPin, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
