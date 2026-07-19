@@ -38,17 +38,30 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               const requireApproval = Boolean(settings?.require_approval);
 
               const paid = (session.amount_total ?? 0) / 100;
-              const update: Record<string, unknown> = {
-                payment_status: "paid",
-                amount_paid: paid,
-                balance_due: 0,
-                stripe_payment_intent:
-                  typeof session.payment_intent === "string" ? session.payment_intent : null,
-              };
-              if (!requireApproval) {
-                update.trip_status = "confirmed";
+              const stripePi =
+                typeof session.payment_intent === "string" ? session.payment_intent : null;
+              if (requireApproval) {
+                await supabaseAdmin
+                  .from("bookings")
+                  .update({
+                    payment_status: "paid",
+                    amount_paid: paid,
+                    balance_due: 0,
+                    stripe_payment_intent: stripePi,
+                  })
+                  .eq("id", bookingId);
+              } else {
+                await supabaseAdmin
+                  .from("bookings")
+                  .update({
+                    payment_status: "paid",
+                    amount_paid: paid,
+                    balance_due: 0,
+                    stripe_payment_intent: stripePi,
+                    trip_status: "confirmed",
+                  })
+                  .eq("id", bookingId);
               }
-              await supabaseAdmin.from("bookings").update(update).eq("id", bookingId);
             } else {
               console.warn("checkout.session.completed with no booking_id");
             }
@@ -58,9 +71,11 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             };
             const bookingId = session.metadata?.booking_id;
             if (bookingId) {
+              // No dedicated 'failed' payment_status enum value — leave as
+              // unpaid and cancel the trip so the slot frees up.
               await supabaseAdmin
                 .from("bookings")
-                .update({ payment_status: "failed" })
+                .update({ trip_status: "canceled" })
                 .eq("id", bookingId);
             }
           }
