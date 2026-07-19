@@ -6,7 +6,7 @@ import { listCalendarBookings } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/calendar")({
   head: () => ({ meta: [{ title: "Admin Calendar — Stevie Services" }] }),
-  component: AdminCalendar;,
+  component: AdminCalendar,
 });
 
 function startOfWeek(d: Date) {
