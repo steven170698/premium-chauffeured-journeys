@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listAdminBookings, updateBookingStatus } from "@/lib/admin.functions";
 import { approveBooking, declineBooking } from "@/lib/payment.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 import { MapPin, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
@@ -69,7 +70,14 @@ function AdminBookings() {
   });
 
   const approveMut = useMutation({
-    mutationFn: (bookingId: string) => approveBooking({ data: { bookingId } }),
+    mutationFn: (bookingId: string) =>
+      approveBooking({
+        data: {
+          bookingId,
+          environment: getStripeEnvironment(),
+          returnUrl: `${window.location.origin}/booking/success`,
+        },
+      }),
     onSuccess: () => {
       toast.success("Approved — payment link sent to customer");
       invalidate();
