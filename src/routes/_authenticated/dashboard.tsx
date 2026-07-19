@@ -314,12 +314,17 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
       return res;
     },
     onSuccess: (res) => {
-      toast.success(`Ride updated — new total $${Number(res.total).toFixed(2)}`);
+      if ("ok" in res) {
+        toast.success(
+          `Ride updated — ${res.quote.distanceMiles} mi · ${res.quote.durationMinutes} min · new total $${Number(res.quote.total).toFixed(2)}`,
+        );
+      }
       qc.invalidateQueries({ queryKey: ["my-bookings"] });
       onClose();
     },
     onError: (e) => toast.error((e as Error).message),
   });
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-4">
