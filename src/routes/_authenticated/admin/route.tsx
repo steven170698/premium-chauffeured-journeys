@@ -29,6 +29,7 @@ function AdminLayout() {
       </div>
       <nav className="mb-8 flex flex-wrap gap-2 border-b border-border/60 pb-3">
         <NavTab to="/admin" icon={<LayoutDashboard className="h-4 w-4" />} label="Overview" exact />
+        <NavTab to="/admin/driver" icon={<Car className="h-4 w-4" />} label="Driver" />
         <NavTab to="/admin/bookings" icon={<ClipboardList className="h-4 w-4" />} label="Bookings" />
         <NavTab to="/admin/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" />
         <NavTab to="/admin/reviews" icon={<Star className="h-4 w-4" />} label="Reviews" />
