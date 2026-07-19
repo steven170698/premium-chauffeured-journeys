@@ -161,8 +161,10 @@ function BookPage() {
           extraStop: extraStopText || null,
           flightNumber: flightNumber || null,
           specialInstructions: specialInstructions || null,
+          fareAdjustmentPolicyAccepted: fareAccepted,
         },
       });
+
 
       if ("error" in result) throw new Error(result.error);
       toast.success("Ride request submitted — awaiting driver approval.");
