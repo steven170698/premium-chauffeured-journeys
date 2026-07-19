@@ -14,11 +14,15 @@ import {
   ArrowRight,
   Sparkles,
   Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import type { SelectedPlace } from "@/lib/useGoogleMaps";
 import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
+import { createBookingCheckout } from "@/lib/checkout.functions";
+import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -41,18 +45,41 @@ export const Route = createFileRoute("/book")({
 });
 
 function BookPage() {
+  // Contact
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+
+  // Trip
   const [roundTrip, setRoundTrip] = useState(false);
   const [pickupText, setPickupText] = useState("");
   const [destText, setDestText] = useState("");
   const [pickup, setPickup] = useState<SelectedPlace | null>(null);
   const [destination, setDestination] = useState<SelectedPlace | null>(null);
+  const [pickupDate, setPickupDate] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
+  const [returnDate, setReturnDate] = useState("");
+  const [returnTime, setReturnTime] = useState("");
+
+  // Details
+  const [passengers, setPassengers] = useState(1);
+  const [bags, setBags] = useState(0);
+  const [flightNumber, setFlightNumber] = useState("");
   const [extraStopText, setExtraStopText] = useState("");
+  const [specialInstructions, setSpecialInstructions] = useState("");
+
+  // Quote
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
 
+  // Checkout
+  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
+  const [creatingCheckout, setCreatingCheckout] = useState(false);
+
   const extraStops = useMemo(() => (extraStopText.trim() ? 1 : 0), [extraStopText]);
   const runQuote = useServerFn(computeQuote);
+  const runCheckout = useServerFn(createBookingCheckout);
 
   useEffect(() => {
     if (!pickup || !destination) {
@@ -82,6 +109,54 @@ function BookPage() {
     };
   }, [pickup, destination, extraStops, roundTrip, runQuote]);
 
+  const canPay = Boolean(
+    quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime,
+  );
+
+  const handleContinue = async () => {
+    if (!canPay || !pickup || !destination) {
+      toast.error("Please fill in your name, email, phone, and pickup date/time.");
+      return;
+    }
+    setCreatingCheckout(true);
+    try {
+      const pickupAtIso = new Date(`${pickupDate}T${pickupTime}`).toISOString();
+      const returnAtIso =
+        roundTrip && returnDate && returnTime
+          ? new Date(`${returnDate}T${returnTime}`).toISOString()
+          : null;
+
+      const result = await runCheckout({
+        data: {
+          environment: getStripeEnvironment(),
+          fullName,
+          email,
+          phone,
+          pickup,
+          destination,
+          pickupAt: pickupAtIso,
+          isRoundTrip: roundTrip,
+          returnAt: returnAtIso,
+          passengers,
+          bags,
+          extraStop: extraStopText || null,
+          flightNumber: flightNumber || null,
+          specialInstructions: specialInstructions || null,
+          returnUrl: `${window.location.origin}/booking/success`,
+        },
+      });
+
+      if ("error" in result) throw new Error(result.error);
+      if (!result.clientSecret) throw new Error("Could not start checkout.");
+      setCheckoutSecret(result.clientSecret);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Checkout failed";
+      toast.error(msg);
+    } finally {
+      setCreatingCheckout(false);
+    }
+  };
+
   return (
     <div className="relative">
       <div className="absolute inset-x-0 top-0 h-[520px] -z-10 bg-radial-gold" />
@@ -102,17 +177,44 @@ function BookPage() {
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[1fr_380px]">
           {/* Form */}
-          <form className="space-y-8 rounded-3xl border border-border/60 bg-card/60 p-6 backdrop-blur md:p-9">
+          <form
+            className="space-y-8 rounded-3xl border border-border/60 bg-card/60 p-6 backdrop-blur md:p-9"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleContinue();
+            }}
+          >
             <Fieldset title="Contact Information" step="01">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Full Name" required>
-                  <input type="text" required className={inputCls} placeholder="Jane Doe" />
+                  <input
+                    type="text"
+                    required
+                    className={inputCls}
+                    placeholder="Jane Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
                 </Field>
                 <Field label="Phone Number" required>
-                  <input type="tel" required className={inputCls} placeholder="(929) 555-0000" />
+                  <input
+                    type="tel"
+                    required
+                    className={inputCls}
+                    placeholder="(929) 555-0000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
                 </Field>
                 <Field label="Email Address" required className="sm:col-span-2">
-                  <input type="email" required className={inputCls} placeholder="jane@example.com" />
+                  <input
+                    type="email"
+                    required
+                    className={inputCls}
+                    placeholder="jane@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
                 </Field>
               </div>
             </Fieldset>
@@ -149,10 +251,22 @@ function BookPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Pickup Date" required icon={<Calendar className="h-4 w-4 text-gold" />}>
-                    <input type="date" required className={inputCls} />
+                    <input
+                      type="date"
+                      required
+                      className={inputCls}
+                      value={pickupDate}
+                      onChange={(e) => setPickupDate(e.target.value)}
+                    />
                   </Field>
                   <Field label="Pickup Time" required icon={<Clock className="h-4 w-4 text-gold" />}>
-                    <input type="time" required className={inputCls} />
+                    <input
+                      type="time"
+                      required
+                      className={inputCls}
+                      value={pickupTime}
+                      onChange={(e) => setPickupTime(e.target.value)}
+                    />
                   </Field>
                 </div>
 
@@ -177,10 +291,20 @@ function BookPage() {
                 {roundTrip && (
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field label="Return Date">
-                      <input type="date" className={inputCls} />
+                      <input
+                        type="date"
+                        className={inputCls}
+                        value={returnDate}
+                        onChange={(e) => setReturnDate(e.target.value)}
+                      />
                     </Field>
                     <Field label="Return Time">
-                      <input type="time" className={inputCls} />
+                      <input
+                        type="time"
+                        className={inputCls}
+                        value={returnTime}
+                        onChange={(e) => setReturnTime(e.target.value)}
+                      />
                     </Field>
                   </div>
                 )}
@@ -192,10 +316,22 @@ function BookPage() {
             <Fieldset title="Passengers & Vehicle" step="03">
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field label="Passengers" icon={<Users className="h-4 w-4 text-gold" />}>
-                  <input type="number" min={1} defaultValue={1} className={inputCls} />
+                  <input
+                    type="number"
+                    min={1}
+                    className={inputCls}
+                    value={passengers}
+                    onChange={(e) => setPassengers(Math.max(1, Number(e.target.value) || 1))}
+                  />
                 </Field>
                 <Field label="Bags" icon={<Briefcase className="h-4 w-4 text-gold" />}>
-                  <input type="number" min={0} defaultValue={0} className={inputCls} />
+                  <input
+                    type="number"
+                    min={0}
+                    className={inputCls}
+                    value={bags}
+                    onChange={(e) => setBags(Math.max(0, Number(e.target.value) || 0))}
+                  />
                 </Field>
                 <Field label="Vehicle Type">
                   <select className={inputCls} defaultValue="Honda CR-V 2024">
@@ -206,7 +342,13 @@ function BookPage() {
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field label="Flight Number (optional)" icon={<Plane className="h-4 w-4 text-gold" />}>
-                  <input type="text" className={inputCls} placeholder="e.g. DL 402" />
+                  <input
+                    type="text"
+                    className={inputCls}
+                    placeholder="e.g. DL 402"
+                    value={flightNumber}
+                    onChange={(e) => setFlightNumber(e.target.value)}
+                  />
                 </Field>
                 <Field label="Additional Stop (optional)">
                   <input
@@ -224,6 +366,8 @@ function BookPage() {
                     rows={3}
                     className={inputCls}
                     placeholder="Child seat, meet & greet, preferred route…"
+                    value={specialInstructions}
+                    onChange={(e) => setSpecialInstructions(e.target.value)}
                   />
                 </Field>
               </div>
@@ -269,10 +413,7 @@ function BookPage() {
                   </div>
                 ) : null}
 
-                <BreakdownRow
-                  label="Distance"
-                  value={quote ? `${quote.distanceMiles} mi` : "—"}
-                />
+                <BreakdownRow label="Distance" value={quote ? `${quote.distanceMiles} mi` : "—"} />
                 <BreakdownRow
                   label="Travel Time"
                   value={quote ? `${quote.durationMinutes} min` : "—"}
@@ -282,15 +423,10 @@ function BookPage() {
                 <BreakdownRow label="Mileage" value={money(quote?.mileage)} />
                 <BreakdownRow label="Time" value={money(quote?.time)} />
                 <BreakdownRow label="Booking Fee" value={money(quote?.bookingFee)} />
-                <BreakdownRow
-                  label="Airport Surcharge"
-                  value={money(quote?.airportSurcharge)}
-                />
+                <BreakdownRow label="Airport Surcharge" value={money(quote?.airportSurcharge)} />
                 <BreakdownRow label="Extra Stops" value={money(quote?.stopsFee)} />
                 <BreakdownRow label="Estimated Tolls" value={money(quote?.tollsEstimate)} />
-                {quote?.roundTrip && (
-                  <BreakdownRow label="Round Trip" value="× 2" />
-                )}
+                {quote?.roundTrip && <BreakdownRow label="Round Trip" value="× 2" />}
                 <div className="hairline" />
                 <div className="flex items-baseline justify-between">
                   <div className="text-xs uppercase tracking-[0.28em] text-gold">
@@ -303,18 +439,63 @@ function BookPage() {
 
                 <button
                   type="button"
-                  disabled={!quote}
+                  onClick={handleContinue}
+                  disabled={!canPay || creatingCheckout}
                   className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gold-gradient px-6 py-4 text-sm font-semibold text-gold-foreground shadow-gold-glow disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Continue to Payment
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  {creatingCheckout ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Preparing checkout…
+                    </>
+                  ) : (
+                    <>
+                      Continue to Payment
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
                 </button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  Choose full payment or a 25% deposit at checkout (coming next).
+                  Secure payment powered by Stripe. Pay the full fare to confirm your reservation.
                 </p>
               </div>
             </div>
           </aside>
+        </div>
+      </div>
+
+      {checkoutSecret && (
+        <CheckoutModal
+          clientSecret={checkoutSecret}
+          onClose={() => setCheckoutSecret(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function CheckoutModal({
+  clientSecret,
+  onClose,
+}: {
+  clientSecret: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-4">
+      <div className="relative mt-10 w-full max-w-3xl overflow-hidden rounded-3xl border border-gold/30 bg-card shadow-elegant">
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-background/80 text-muted-foreground hover:text-foreground"
+          aria-label="Close checkout"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="p-2 sm:p-4">
+          <EmbeddedCheckoutProvider stripe={getStripe()} options={{ clientSecret }}>
+            <EmbeddedCheckout />
+          </EmbeddedCheckoutProvider>
         </div>
       </div>
     </div>
