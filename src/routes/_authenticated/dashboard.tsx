@@ -495,6 +495,22 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
             />
           </div>
         </div>
+        <div className="mt-4 rounded-2xl border border-gold/30 bg-gold/5 p-4 text-xs">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="uppercase tracking-widest text-gold">New estimate</span>
+            {previewLoading && <span className="text-muted-foreground">Recalculating…</span>}
+          </div>
+          {preview ? (
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div><div className="text-muted-foreground">Distance</div><div className="font-semibold">{preview.distanceMiles} mi</div></div>
+              <div><div className="text-muted-foreground">Time</div><div className="font-semibold">{preview.durationMinutes} min</div></div>
+              <div><div className="text-muted-foreground">New total</div><div className="font-semibold text-gold">${preview.total.toFixed(2)}</div></div>
+            </div>
+          ) : (
+            <div className="text-muted-foreground">Pick both addresses to preview the new fare.</div>
+          )}
+        </div>
+
         <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground">
             Cancel
