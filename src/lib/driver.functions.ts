@@ -171,12 +171,13 @@ export const issueRefund = createServerFn({ method: "POST" })
     z.object({
       bookingId: z.string().uuid(),
       amount: z.number().positive().optional(),
+      environment: z.enum(["sandbox", "live"]),
     }).parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { createStripeClient, resolveStripeEnv } = await import("@/lib/stripe.server");
+    const { createStripeClient } = await import("@/lib/stripe.server");
     const { data: b, error: fe } = await supabaseAdmin
       .from("bookings")
       .select("stripe_payment_intent, amount_paid, total")
@@ -185,8 +186,7 @@ export const issueRefund = createServerFn({ method: "POST" })
     if (fe || !b) throw new Error("Booking not found");
     const pi = (b as any).stripe_payment_intent as string | null;
     if (!pi) throw new Error("No Stripe payment on file for this booking.");
-    const env = resolveStripeEnv();
-    const stripe = createStripeClient(env);
+    const stripe = createStripeClient(data.environment);
     const refundAmount = data.amount ? Math.round(data.amount * 100) : undefined;
     const refund = await stripe.refunds.create({
       payment_intent: pi,
