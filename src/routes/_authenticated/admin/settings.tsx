@@ -19,6 +19,9 @@ type FormState = {
   deposit_percentage: string;
   require_approval: boolean;
   approval_deadline_minutes: string;
+  payment_window_minutes: string;
+  hold_during_approval: boolean;
+  auto_confirm_future_bookings: boolean;
   sms_enabled: boolean;
   google_calendar_id: string;
 };
