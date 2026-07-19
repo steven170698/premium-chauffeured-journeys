@@ -2,9 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy } from "lucide-react";
+import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, X } from "lucide-react";
 import { toast } from "sonner";
 import { submitReview } from "@/lib/reviews.functions";
+import { startBookingPayment } from "@/lib/payment.functions";
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
+import { getStripe } from "@/lib/stripe";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "My Dashboard — Stevie Services" }] }),
@@ -59,8 +63,9 @@ function DashboardPage() {
 
   const isAdmin = roles?.some((r) => r.role === "admin");
   const now = new Date();
-  const upcoming = (bookings ?? []).filter((b) => new Date(b.pickup_at) >= now && b.trip_status !== "canceled" && b.trip_status !== "completed");
-  const past = (bookings ?? []).filter((b) => b.trip_status === "completed" || b.trip_status === "canceled");
+  const terminal = new Set(["completed", "canceled", "declined", "payment_expired"]);
+  const upcoming = (bookings ?? []).filter((b) => new Date(b.pickup_at) >= now && !terminal.has(b.trip_status));
+  const past = (bookings ?? []).filter((b) => terminal.has(b.trip_status));
   const referralLink = referral ? `${typeof window !== "undefined" ? window.location.origin : ""}/book?ref=${referral.referral_code}` : "";
 
   return (
@@ -199,7 +204,72 @@ function BookingRow({ b }: { b: any }) {
           <div className="mt-2 font-display text-lg font-semibold">${Number(b.total).toFixed(2)}</div>
         </div>
       </div>
+      {b.trip_status === "awaiting_payment" && <PayNow bookingId={b.id} deadlineAt={b.payment_deadline_at} />}
       {b.trip_status === "completed" && <ReviewPrompt bookingId={b.id} />}
+    </div>
+  );
+}
+
+function PayNow({ bookingId, deadlineAt }: { bookingId: string; deadlineAt?: string | null }) {
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const start = async () => {
+    setLoading(true);
+    try {
+      const res = await startBookingPayment({
+        data: {
+          bookingId,
+          returnUrl: `${window.location.origin}/booking/success?booking_id=${bookingId}&session_id={CHECKOUT_SESSION_ID}`,
+        },
+      });
+      if ("error" in res) throw new Error(res.error);
+      if (!res.clientSecret) throw new Error("Could not start payment.");
+      setClientSecret(res.clientSecret);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <div className="mt-3 rounded-xl border border-gold/40 bg-gold/5 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-xs text-muted-foreground">
+          Approved — pay now to confirm.
+          {deadlineAt && (
+            <> Payment window ends{" "}
+              <span className="text-foreground">{new Date(deadlineAt).toLocaleString()}</span>.
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={start}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 rounded-full bg-gold-gradient px-4 py-1.5 text-xs font-semibold text-gold-foreground shadow-gold-glow disabled:opacity-50"
+        >
+          <CreditCard className="h-3 w-3" /> {loading ? "Loading…" : "Pay now"}
+        </button>
+      </div>
+      {clientSecret && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-4">
+          <div className="relative mt-10 w-full max-w-3xl overflow-hidden rounded-3xl border border-gold/30 bg-card shadow-elegant">
+            <button
+              type="button"
+              onClick={() => setClientSecret(null)}
+              className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-background/80 text-muted-foreground hover:text-foreground"
+              aria-label="Close checkout"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="p-2 sm:p-4">
+              <EmbeddedCheckoutProvider stripe={getStripe()} options={{ clientSecret }}>
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

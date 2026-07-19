@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -14,15 +14,12 @@ import {
   ArrowRight,
   Sparkles,
   Loader2,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import type { SelectedPlace } from "@/lib/useGoogleMaps";
 import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
-import { createBookingCheckout } from "@/lib/checkout.functions";
-import { getStripe, getStripeEnvironment } from "@/lib/stripe";
+import { requestBooking } from "@/lib/booking.functions";
 
 export const Route = createFileRoute("/book")({
   head: () => ({
@@ -73,13 +70,13 @@ function BookPage() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
 
-  // Checkout
-  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
-  const [creatingCheckout, setCreatingCheckout] = useState(false);
+  // Submit
+  const [submitting, setSubmitting] = useState(false);
 
   const extraStops = useMemo(() => (extraStopText.trim() ? 1 : 0), [extraStopText]);
   const runQuote = useServerFn(computeQuote);
-  const runCheckout = useServerFn(createBookingCheckout);
+  const runRequest = useServerFn(requestBooking);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!pickup || !destination) {
@@ -109,16 +106,16 @@ function BookPage() {
     };
   }, [pickup, destination, extraStops, roundTrip, runQuote]);
 
-  const canPay = Boolean(
+  const canSubmit = Boolean(
     quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime,
   );
 
-  const handleContinue = async () => {
-    if (!canPay || !pickup || !destination) {
+  const handleSubmit = async () => {
+    if (!canSubmit || !pickup || !destination) {
       toast.error("Please fill in your name, email, phone, and pickup date/time.");
       return;
     }
-    setCreatingCheckout(true);
+    setSubmitting(true);
     try {
       const pickupAtIso = new Date(`${pickupDate}T${pickupTime}`).toISOString();
       const returnAtIso =
@@ -126,9 +123,8 @@ function BookPage() {
           ? new Date(`${returnDate}T${returnTime}`).toISOString()
           : null;
 
-      const result = await runCheckout({
+      const result = await runRequest({
         data: {
-          environment: getStripeEnvironment(),
           fullName,
           email,
           phone,
@@ -142,18 +138,20 @@ function BookPage() {
           extraStop: extraStopText || null,
           flightNumber: flightNumber || null,
           specialInstructions: specialInstructions || null,
-          returnUrl: `${window.location.origin}/booking/success`,
         },
       });
 
       if ("error" in result) throw new Error(result.error);
-      if (!result.clientSecret) throw new Error("Could not start checkout.");
-      setCheckoutSecret(result.clientSecret);
+      toast.success("Ride request submitted — awaiting driver approval.");
+      navigate({
+        to: "/booking/success",
+        search: { booking_id: result.bookingId },
+      });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Checkout failed";
+      const msg = e instanceof Error ? e.message : "Could not submit request";
       toast.error(msg);
     } finally {
-      setCreatingCheckout(false);
+      setSubmitting(false);
     }
   };
 
@@ -181,7 +179,7 @@ function BookPage() {
             className="space-y-8 rounded-3xl border border-border/60 bg-card/60 p-6 backdrop-blur md:p-9"
             onSubmit={(e) => {
               e.preventDefault();
-              handleContinue();
+              handleSubmit();
             }}
           >
             <Fieldset title="Contact Information" step="01">
@@ -439,63 +437,28 @@ function BookPage() {
 
                 <button
                   type="button"
-                  onClick={handleContinue}
-                  disabled={!canPay || creatingCheckout}
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || submitting}
                   className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-gold-gradient px-6 py-4 text-sm font-semibold text-gold-foreground shadow-gold-glow disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {creatingCheckout ? (
+                  {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Preparing checkout…
+                      Submitting request…
                     </>
                   ) : (
                     <>
-                      Continue to Payment
+                      Request This Ride
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </>
                   )}
                 </button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  Secure payment powered by Stripe. Pay the full fare to confirm your reservation.
+                  No charge yet. We'll review your request and send a secure payment link once your ride is approved.
                 </p>
               </div>
             </div>
           </aside>
-        </div>
-      </div>
-
-      {checkoutSecret && (
-        <CheckoutModal
-          clientSecret={checkoutSecret}
-          onClose={() => setCheckoutSecret(null)}
-        />
-      )}
-    </div>
-  );
-}
-
-function CheckoutModal({
-  clientSecret,
-  onClose,
-}: {
-  clientSecret: string;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-background/80 backdrop-blur-sm p-4">
-      <div className="relative mt-10 w-full max-w-3xl overflow-hidden rounded-3xl border border-gold/30 bg-card shadow-elegant">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 z-10 grid h-9 w-9 place-items-center rounded-full border border-border/60 bg-background/80 text-muted-foreground hover:text-foreground"
-          aria-label="Close checkout"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <div className="p-2 sm:p-4">
-          <EmbeddedCheckoutProvider stripe={getStripe()} options={{ clientSecret }}>
-            <EmbeddedCheckout />
-          </EmbeddedCheckoutProvider>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { listAdminBookings, updateBookingStatus } from "@/lib/admin.functions";
+import { approveBooking, declineBooking } from "@/lib/payment.functions";
 import { MapPin, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
@@ -13,24 +14,26 @@ export const Route = createFileRoute("/_authenticated/admin/bookings")({
 type StatusFilter =
   | "all"
   | "pending_approval"
+  | "awaiting_payment"
   | "confirmed"
   | "driver_en_route"
   | "driver_arrived"
   | "picked_up"
   | "completed"
+  | "declined"
+  | "payment_expired"
   | "canceled";
 
-const NEXT_ACTIONS: Record<string, Array<{ label: string; to: string; variant?: "danger" | "primary" }>> = {
-  pending_approval: [
-    { label: "Approve", to: "confirmed", variant: "primary" },
-    { label: "Decline", to: "canceled", variant: "danger" },
-  ],
+const NEXT_ACTIONS: Record<
+  string,
+  Array<{ label: string; to: string; variant?: "danger" | "primary" }>
+> = {
   confirmed: [
     { label: "En route", to: "driver_en_route", variant: "primary" },
     { label: "Cancel", to: "canceled", variant: "danger" },
   ],
-  en_route: [{ label: "Arrived", to: "driver_arrived", variant: "primary" }],
-  arrived: [{ label: "Picked up", to: "picked_up", variant: "primary" }],
+  driver_en_route: [{ label: "Arrived", to: "driver_arrived", variant: "primary" }],
+  driver_arrived: [{ label: "Picked up", to: "picked_up", variant: "primary" }],
   picked_up: [{ label: "Complete ride", to: "completed", variant: "primary" }],
 };
 
@@ -50,13 +53,35 @@ function AdminBookings() {
       }),
   });
 
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["admin-bookings"] });
+    qc.invalidateQueries({ queryKey: ["admin-stats"] });
+  };
+
   const mut = useMutation({
     mutationFn: (v: { bookingId: string; status: string }) =>
       updateBookingStatus({ data: v as never }),
     onSuccess: () => {
       toast.success("Booking updated");
-      qc.invalidateQueries({ queryKey: ["admin-bookings"] });
-      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const approveMut = useMutation({
+    mutationFn: (bookingId: string) => approveBooking({ data: { bookingId } }),
+    onSuccess: () => {
+      toast.success("Approved — payment link sent to customer");
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const declineMut = useMutation({
+    mutationFn: (bookingId: string) => declineBooking({ data: { bookingId } }),
+    onSuccess: () => {
+      toast.success("Request declined");
+      invalidate();
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -64,13 +89,17 @@ function AdminBookings() {
   const filters: StatusFilter[] = [
     "all",
     "pending_approval",
+    "awaiting_payment",
     "confirmed",
     "driver_en_route",
     "driver_arrived",
     "picked_up",
     "completed",
+    "declined",
+    "payment_expired",
     "canceled",
   ];
+
 
   return (
     <div className="space-y-5">
@@ -150,6 +179,24 @@ function AdminBookings() {
                   <td className="px-4 py-3 text-right font-display">${Number(b.total).toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      {b.trip_status === "pending_approval" && (
+                        <>
+                          <button
+                            disabled={approveMut.isPending}
+                            onClick={() => approveMut.mutate(b.id)}
+                            className="rounded-full bg-gold-gradient px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-gold-foreground shadow-gold-glow disabled:opacity-50"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            disabled={declineMut.isPending}
+                            onClick={() => declineMut.mutate(b.id)}
+                            className="rounded-full border border-red-500/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                          >
+                            Decline
+                          </button>
+                        </>
+                      )}
                       {actions.map((a) => (
                         <button
                           key={a.to}

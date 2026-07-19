@@ -19,6 +19,9 @@ type FormState = {
   deposit_percentage: string;
   require_approval: boolean;
   approval_deadline_minutes: string;
+  payment_window_minutes: string;
+  hold_during_approval: boolean;
+  auto_confirm_future_bookings: boolean;
   sms_enabled: boolean;
   google_calendar_id: string;
 };
@@ -44,6 +47,9 @@ function AdminSettings() {
         deposit_percentage: String(data.deposit_percentage ?? 25),
         require_approval: Boolean(data.require_approval),
         approval_deadline_minutes: String(data.approval_deadline_minutes ?? 60),
+        payment_window_minutes: String((data as any).payment_window_minutes ?? 30),
+        hold_during_approval: Boolean((data as any).hold_during_approval ?? true),
+        auto_confirm_future_bookings: Boolean((data as any).auto_confirm_future_bookings ?? false),
         sms_enabled: Boolean(data.sms_enabled),
         google_calendar_id: String(data.google_calendar_id ?? ""),
       });
@@ -63,6 +69,9 @@ function AdminSettings() {
           deposit_percentage: Number(v.deposit_percentage),
           require_approval: v.require_approval,
           approval_deadline_minutes: Number(v.approval_deadline_minutes),
+          payment_window_minutes: Number(v.payment_window_minutes),
+          hold_during_approval: v.hold_during_approval,
+          auto_confirm_future_bookings: v.auto_confirm_future_bookings,
           sms_enabled: v.sms_enabled,
           google_calendar_id: v.google_calendar_id || null,
         },
@@ -99,16 +108,31 @@ function AdminSettings() {
         <NumField label="Deposit %" value={form.deposit_percentage} onChange={(v) => update("deposit_percentage", v)} />
       </Section>
 
-      <Section title="Approval workflow" desc="When manual approval is on, paid bookings stay in pending_approval until you approve them from the Bookings page.">
+      <Section title="Approval & payment workflow" desc="Customers are never charged until you approve. After approval a secure payment link is sent; the reservation stays held until the payment window ends.">
         <Toggle
           label="Require manual approval on every booking"
           value={form.require_approval}
           onChange={(v) => update("require_approval", v)}
         />
+        <Toggle
+          label="Auto-confirm future bookings (skip manual approval)"
+          value={form.auto_confirm_future_bookings}
+          onChange={(v) => update("auto_confirm_future_bookings", v)}
+        />
+        <Toggle
+          label="Hold requested time while awaiting driver approval"
+          value={form.hold_during_approval}
+          onChange={(v) => update("hold_during_approval", v)}
+        />
         <NumField
           label="Approval deadline (minutes)"
           value={form.approval_deadline_minutes}
           onChange={(v) => update("approval_deadline_minutes", v)}
+        />
+        <NumField
+          label="Customer payment window (minutes)"
+          value={form.payment_window_minutes}
+          onChange={(v) => update("payment_window_minutes", v)}
         />
       </Section>
 

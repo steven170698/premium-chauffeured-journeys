@@ -164,6 +164,9 @@ export const updateAdminSettings = createServerFn({ method: "POST" })
         require_approval: z.boolean().optional(),
         approval_deadline_minutes: z.number().int().min(0).optional(),
         auto_decline_on_timeout: z.boolean().optional(),
+        payment_window_minutes: z.number().int().min(1).optional(),
+        hold_during_approval: z.boolean().optional(),
+        auto_confirm_future_bookings: z.boolean().optional(),
         sms_enabled: z.boolean().optional(),
         google_calendar_id: z.string().optional().nullable(),
       })
