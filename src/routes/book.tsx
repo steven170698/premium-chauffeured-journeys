@@ -202,42 +202,46 @@ function BookPage() {
               handleSubmit();
             }}
           >
-            <Fieldset title="Contact Information" step="01">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Full Name" required>
-                  <input
-                    type="text"
-                    required
-                    className={inputCls}
-                    placeholder="Jane Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
-                </Field>
-                <Field label="Phone Number" required>
-                  <input
-                    type="tel"
-                    required
-                    className={inputCls}
-                    placeholder="(929) 555-0000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </Field>
-                <Field label="Email Address" required className="sm:col-span-2">
-                  <input
-                    type="email"
-                    required
-                    className={inputCls}
-                    placeholder="jane@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </Field>
-              </div>
-            </Fieldset>
+            {!isSignedIn && authChecked && (
+              <>
+                <Fieldset title="Contact Information" step="01">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Full Name" required>
+                      <input
+                        type="text"
+                        required
+                        className={inputCls}
+                        placeholder="Jane Doe"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Phone Number" required>
+                      <input
+                        type="tel"
+                        required
+                        className={inputCls}
+                        placeholder="(929) 555-0000"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Email Address" required className="sm:col-span-2">
+                      <input
+                        type="email"
+                        required
+                        className={inputCls}
+                        placeholder="jane@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                </Fieldset>
 
-            <Divider />
+                <Divider />
+              </>
+            )}
 
             <Fieldset title="Trip Details" step="02">
               <div className="space-y-4">
