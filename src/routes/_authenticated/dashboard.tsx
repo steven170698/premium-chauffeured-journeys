@@ -6,6 +6,7 @@ import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, 
 import { toast } from "sonner";
 import { submitReview } from "@/lib/reviews.functions";
 import { startBookingPayment } from "@/lib/payment.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
 
