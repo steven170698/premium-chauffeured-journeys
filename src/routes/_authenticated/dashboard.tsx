@@ -63,8 +63,9 @@ function DashboardPage() {
 
   const isAdmin = roles?.some((r) => r.role === "admin");
   const now = new Date();
-  const upcoming = (bookings ?? []).filter((b) => new Date(b.pickup_at) >= now && b.trip_status !== "canceled" && b.trip_status !== "completed");
-  const past = (bookings ?? []).filter((b) => b.trip_status === "completed" || b.trip_status === "canceled");
+  const terminal = new Set(["completed", "canceled", "declined", "payment_expired"]);
+  const upcoming = (bookings ?? []).filter((b) => new Date(b.pickup_at) >= now && !terminal.has(b.trip_status));
+  const past = (bookings ?? []).filter((b) => terminal.has(b.trip_status));
   const referralLink = referral ? `${typeof window !== "undefined" ? window.location.origin : ""}/book?ref=${referral.referral_code}` : "";
 
   return (
