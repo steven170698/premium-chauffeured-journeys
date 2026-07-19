@@ -273,7 +273,7 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
           placeId: booking.pickup_place_id || booking.pickup_address,
           address: booking.pickup_address,
           lat: Number(booking.pickup_lat),
-          lng: Number(booking.pickup_lng),
+          lng: Number(booking.pickup_lng), isAirport: false,
         }
       : null,
   );
@@ -284,7 +284,7 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
           placeId: booking.destination_place_id || booking.destination_address,
           address: booking.destination_address,
           lat: Number(booking.destination_lat),
-          lng: Number(booking.destination_lng),
+          lng: Number(booking.destination_lng), isAirport: false,
         }
       : null,
   );
