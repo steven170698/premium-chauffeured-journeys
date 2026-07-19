@@ -18,11 +18,13 @@ export type Database = {
         Row: {
           airport_surcharge: number
           approval_deadline_minutes: number
+          auto_confirm_future_bookings: boolean
           auto_decline_on_timeout: boolean
           base_fare: number
           booking_fee: number
           deposit_percentage: number
           google_calendar_id: string | null
+          hold_during_approval: boolean
           id: number
           loyalty_10_discount: number
           loyalty_20_vip: boolean
@@ -30,6 +32,7 @@ export type Database = {
           loyalty_combines_with_coupons: boolean
           minimum_advance_notice_minutes: number
           minimum_booking_block_minutes: number
+          payment_window_minutes: number
           per_mile_rate: number
           per_minute_rate: number
           preparation_buffer_minutes: number
@@ -46,11 +49,13 @@ export type Database = {
         Insert: {
           airport_surcharge?: number
           approval_deadline_minutes?: number
+          auto_confirm_future_bookings?: boolean
           auto_decline_on_timeout?: boolean
           base_fare?: number
           booking_fee?: number
           deposit_percentage?: number
           google_calendar_id?: string | null
+          hold_during_approval?: boolean
           id?: number
           loyalty_10_discount?: number
           loyalty_20_vip?: boolean
@@ -58,6 +63,7 @@ export type Database = {
           loyalty_combines_with_coupons?: boolean
           minimum_advance_notice_minutes?: number
           minimum_booking_block_minutes?: number
+          payment_window_minutes?: number
           per_mile_rate?: number
           per_minute_rate?: number
           preparation_buffer_minutes?: number
@@ -74,11 +80,13 @@ export type Database = {
         Update: {
           airport_surcharge?: number
           approval_deadline_minutes?: number
+          auto_confirm_future_bookings?: boolean
           auto_decline_on_timeout?: boolean
           base_fare?: number
           booking_fee?: number
           deposit_percentage?: number
           google_calendar_id?: string | null
+          hold_during_approval?: boolean
           id?: number
           loyalty_10_discount?: number
           loyalty_20_vip?: boolean
@@ -86,6 +94,7 @@ export type Database = {
           loyalty_combines_with_coupons?: boolean
           minimum_advance_notice_minutes?: number
           minimum_booking_block_minutes?: number
+          payment_window_minutes?: number
           per_mile_rate?: number
           per_minute_rate?: number
           preparation_buffer_minutes?: number
@@ -165,12 +174,15 @@ export type Database = {
         Row: {
           airport_stop_fees: number
           amount_paid: number
+          approval_deadline_at: string | null
+          approved_at: string | null
           bags: number
           balance_due: number
           base_fare: number
           booking_fee: number
           coupon_id: string | null
           created_at: string
+          declined_at: string | null
           destination_address: string
           destination_lat: number | null
           destination_lng: number | null
@@ -188,6 +200,7 @@ export type Database = {
           loyalty_discount_applied: number
           mileage_charge: number
           passengers: number
+          payment_deadline_at: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           phone: string
           pickup_address: string
@@ -211,12 +224,15 @@ export type Database = {
         Insert: {
           airport_stop_fees?: number
           amount_paid?: number
+          approval_deadline_at?: string | null
+          approved_at?: string | null
           bags?: number
           balance_due?: number
           base_fare?: number
           booking_fee?: number
           coupon_id?: string | null
           created_at?: string
+          declined_at?: string | null
           destination_address: string
           destination_lat?: number | null
           destination_lng?: number | null
@@ -234,6 +250,7 @@ export type Database = {
           loyalty_discount_applied?: number
           mileage_charge?: number
           passengers?: number
+          payment_deadline_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           phone: string
           pickup_address: string
@@ -257,12 +274,15 @@ export type Database = {
         Update: {
           airport_stop_fees?: number
           amount_paid?: number
+          approval_deadline_at?: string | null
+          approved_at?: string | null
           bags?: number
           balance_due?: number
           base_fare?: number
           booking_fee?: number
           coupon_id?: string | null
           created_at?: string
+          declined_at?: string | null
           destination_address?: string
           destination_lat?: number | null
           destination_lng?: number | null
@@ -280,6 +300,7 @@ export type Database = {
           loyalty_discount_applied?: number
           mileage_charge?: number
           passengers?: number
+          payment_deadline_at?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           phone?: string
           pickup_address?: string
@@ -891,6 +912,9 @@ export type Database = {
         | "picked_up"
         | "completed"
         | "canceled"
+        | "awaiting_payment"
+        | "declined"
+        | "payment_expired"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1044,6 +1068,9 @@ export const Constants = {
         "picked_up",
         "completed",
         "canceled",
+        "awaiting_payment",
+        "declined",
+        "payment_expired",
       ],
     },
   },
