@@ -1,17 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, X, Pencil, Ban } from "lucide-react";
+import { Calendar, MapPin, Clock, Gift, Star, Sparkles, Plus, Copy, CreditCard, X, Pencil, Ban, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { submitReview } from "@/lib/reviews.functions";
 import { startBookingPayment } from "@/lib/payment.functions";
 import { cancelMyBooking, updateMyBooking } from "@/lib/booking-customer.functions";
+import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
 import type { SelectedPlace } from "@/lib/useGoogleMaps";
+
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
