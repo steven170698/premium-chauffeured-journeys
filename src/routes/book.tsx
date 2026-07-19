@@ -113,11 +113,10 @@ function BookPage() {
                   <input type="number" min={0} defaultValue={0} className={inputCls} />
                 </Field>
                 <Field label="Vehicle Type">
-                  <select className={inputCls}>
-                    <option>Luxury Sedan</option>
-                    <option>Executive SUV</option>
-                    <option>Premium Van</option>
+                  <select className={inputCls} defaultValue="Honda CR-V 2024">
+                    <option>Honda CR-V 2024</option>
                   </select>
+                  <Hint>Our current fleet — spacious, comfortable, and impeccably maintained.</Hint>
                 </Field>
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
