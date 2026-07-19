@@ -16,17 +16,18 @@ function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <p className="text-sm uppercase tracking-[0.3em] text-gold">Stevie Services</p>
+        <h1 className="mt-4 font-display text-7xl font-bold text-foreground">404</h1>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Route not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          The page you're looking for has taken a detour.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-full bg-gold-gradient px-6 py-3 text-sm font-semibold text-gold-foreground transition-transform hover:-translate-y-0.5 shadow-gold-glow"
           >
-            Go home
+            Return home
           </Link>
         </div>
       </div>
@@ -44,25 +45,25 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+        <h1 className="font-display text-2xl font-semibold text-foreground">
+          Something went off route
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Try again or head back home. If it keeps happening, call us at 929-299-9747.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-full bg-gold-gradient px-6 py-3 text-sm font-semibold text-gold-foreground shadow-gold-glow"
           >
             Try again
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-full border border-border bg-secondary px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted"
           >
             Go home
           </a>
@@ -77,21 +78,31 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Stevie Services LLC — Luxury Chauffeur & Private Transportation" },
+      {
+        name: "description",
+        content:
+          "Professional, reliable, comfortable chauffeur service. Airport, business, event, and long-distance transportation. Book instantly online.",
+      },
+      { name: "author", content: "Stevie Services LLC" },
+      { name: "theme-color", content: "#0a0a0a" },
+      { property: "og:title", content: "Stevie Services LLC — Luxury Chauffeur Service" },
+      {
+        property: "og:description",
+        content: "Professional • Reliable • Comfortable Transportation. Book online in seconds.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: appCss,
+        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap",
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
   shellComponent: RootShell,
@@ -102,7 +113,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
@@ -114,13 +125,90 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function SiteHeader() {
+  return (
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <Link to="/" className="flex items-center gap-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold-gradient text-gold-foreground shadow-gold-glow">
+            <span className="font-display text-lg font-bold">S</span>
+          </div>
+          <div className="leading-tight">
+            <div className="font-display text-base font-semibold tracking-tight">Stevie Services</div>
+            <div className="text-[10px] uppercase tracking-[0.28em] text-gold">Private Chauffeur</div>
+          </div>
+        </Link>
+        <nav className="hidden items-center gap-8 md:flex">
+          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
+          <Link to="/book" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Book</Link>
+          <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
+          <a href="tel:9292999747" className="text-sm text-muted-foreground hover:text-foreground transition-colors">929-299-9747</a>
+        </nav>
+        <Link
+          to="/book"
+          className="inline-flex items-center justify-center rounded-full bg-gold-gradient px-5 py-2.5 text-sm font-semibold text-gold-foreground transition-transform hover:-translate-y-0.5 shadow-gold-glow"
+        >
+          Book a Ride
+        </Link>
+      </div>
+    </header>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="border-t border-border/60 bg-background">
+      <div className="mx-auto max-w-7xl px-6 py-14">
+        <div className="grid gap-10 md:grid-cols-3">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold-gradient text-gold-foreground">
+                <span className="font-display text-lg font-bold">S</span>
+              </div>
+              <div className="font-display text-lg font-semibold">Stevie Services LLC</div>
+            </div>
+            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+              Professional, reliable, and comfortable private transportation across New York and beyond.
+            </p>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-[0.28em] text-gold">Contact</div>
+            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+              <li><a href="tel:9292999747" className="hover:text-foreground">929-299-9747</a></li>
+              <li><a href="https://StevieServicesLLC.com" className="hover:text-foreground">StevieServicesLLC.com</a></li>
+              <li>New York, NY · America/New_York</li>
+            </ul>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-[0.28em] text-gold">Explore</div>
+            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
+              <li><Link to="/" className="hover:text-foreground">Home</Link></li>
+              <li><Link to="/book" className="hover:text-foreground">Book a Ride</Link></li>
+              <li><Link to="/contact" className="hover:text-foreground">Contact</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className="mt-10 flex flex-col justify-between gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground md:flex-row">
+          <div>© {new Date().getFullYear()} Stevie Services LLC. All rights reserved.</div>
+          <div>Licensed · Insured · Available 24/7</div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="flex min-h-screen flex-col">
+        <SiteHeader />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <SiteFooter />
+      </div>
     </QueryClientProvider>
   );
 }
