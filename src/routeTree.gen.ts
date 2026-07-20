@@ -9,11 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ServicesRouteImport } from './routes/services'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CancellationPolicyRouteImport } from './routes/cancellation-policy'
 import { Route as BookRouteImport } from './routes/book'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServicesHourlyRouteImport } from './routes/services.hourly'
+import { Route as ServicesAirportRouteImport } from './routes/services.airport'
 import { Route as BookingSuccessRouteImport } from './routes/booking.success'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
@@ -25,9 +33,34 @@ import { Route as AuthenticatedAdminCalendarRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminBookingsRouteImport } from './routes/_authenticated/admin/bookings'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesRoute = ServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CancellationPolicyRoute = CancellationPolicyRouteImport.update({
+  id: '/cancellation-policy',
+  path: '/cancellation-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BookRoute = BookRouteImport.update({
@@ -40,6 +73,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -48,6 +86,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ServicesHourlyRoute = ServicesHourlyRouteImport.update({
+  id: '/hourly',
+  path: '/hourly',
+  getParentRoute: () => ServicesRoute,
+} as any)
+const ServicesAirportRoute = ServicesAirportRouteImport.update({
+  id: '/airport',
+  path: '/airport',
+  getParentRoute: () => ServicesRoute,
 } as any)
 const BookingSuccessRoute = BookingSuccessRouteImport.update({
   id: '/booking/success',
@@ -108,12 +156,20 @@ const ApiPublicPaymentsWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
+  '/cancellation-policy': typeof CancellationPolicyRoute
   '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
+  '/privacy': typeof PrivacyRoute
+  '/services': typeof ServicesRouteWithChildren
+  '/terms': typeof TermsRoute
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/booking/success': typeof BookingSuccessRoute
+  '/services/airport': typeof ServicesAirportRoute
+  '/services/hourly': typeof ServicesHourlyRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/driver': typeof AuthenticatedAdminDriverRoute
@@ -124,11 +180,19 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
+  '/cancellation-policy': typeof CancellationPolicyRoute
   '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
+  '/privacy': typeof PrivacyRoute
+  '/services': typeof ServicesRouteWithChildren
+  '/terms': typeof TermsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/booking/success': typeof BookingSuccessRoute
+  '/services/airport': typeof ServicesAirportRoute
+  '/services/hourly': typeof ServicesHourlyRoute
   '/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/admin/driver': typeof AuthenticatedAdminDriverRoute
@@ -141,12 +205,20 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
+  '/cancellation-policy': typeof CancellationPolicyRoute
   '/contact': typeof ContactRoute
+  '/faq': typeof FaqRoute
+  '/privacy': typeof PrivacyRoute
+  '/services': typeof ServicesRouteWithChildren
+  '/terms': typeof TermsRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/booking/success': typeof BookingSuccessRoute
+  '/services/airport': typeof ServicesAirportRoute
+  '/services/hourly': typeof ServicesHourlyRoute
   '/_authenticated/admin/bookings': typeof AuthenticatedAdminBookingsRoute
   '/_authenticated/admin/calendar': typeof AuthenticatedAdminCalendarRoute
   '/_authenticated/admin/driver': typeof AuthenticatedAdminDriverRoute
@@ -159,12 +231,20 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/auth'
     | '/book'
+    | '/cancellation-policy'
     | '/contact'
+    | '/faq'
+    | '/privacy'
+    | '/services'
+    | '/terms'
     | '/admin'
     | '/dashboard'
     | '/booking/success'
+    | '/services/airport'
+    | '/services/hourly'
     | '/admin/bookings'
     | '/admin/calendar'
     | '/admin/driver'
@@ -175,11 +255,19 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/auth'
     | '/book'
+    | '/cancellation-policy'
     | '/contact'
+    | '/faq'
+    | '/privacy'
+    | '/services'
+    | '/terms'
     | '/dashboard'
     | '/booking/success'
+    | '/services/airport'
+    | '/services/hourly'
     | '/admin/bookings'
     | '/admin/calendar'
     | '/admin/driver'
@@ -191,12 +279,20 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/about'
     | '/auth'
     | '/book'
+    | '/cancellation-policy'
     | '/contact'
+    | '/faq'
+    | '/privacy'
+    | '/services'
+    | '/terms'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/booking/success'
+    | '/services/airport'
+    | '/services/hourly'
     | '/_authenticated/admin/bookings'
     | '/_authenticated/admin/calendar'
     | '/_authenticated/admin/driver'
@@ -209,20 +305,61 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
+  CancellationPolicyRoute: typeof CancellationPolicyRoute
   ContactRoute: typeof ContactRoute
+  FaqRoute: typeof FaqRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ServicesRoute: typeof ServicesRouteWithChildren
+  TermsRoute: typeof TermsRoute
   BookingSuccessRoute: typeof BookingSuccessRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/services': {
+      id: '/services'
+      path: '/services'
+      fullPath: '/services'
+      preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contact': {
       id: '/contact'
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cancellation-policy': {
+      id: '/cancellation-policy'
+      path: '/cancellation-policy'
+      fullPath: '/cancellation-policy'
+      preLoaderRoute: typeof CancellationPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/book': {
@@ -239,6 +376,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -252,6 +396,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/services/hourly': {
+      id: '/services/hourly'
+      path: '/hourly'
+      fullPath: '/services/hourly'
+      preLoaderRoute: typeof ServicesHourlyRouteImport
+      parentRoute: typeof ServicesRoute
+    }
+    '/services/airport': {
+      id: '/services/airport'
+      path: '/airport'
+      fullPath: '/services/airport'
+      preLoaderRoute: typeof ServicesAirportRouteImport
+      parentRoute: typeof ServicesRoute
     }
     '/booking/success': {
       id: '/booking/success'
@@ -363,12 +521,32 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface ServicesRouteChildren {
+  ServicesAirportRoute: typeof ServicesAirportRoute
+  ServicesHourlyRoute: typeof ServicesHourlyRoute
+}
+
+const ServicesRouteChildren: ServicesRouteChildren = {
+  ServicesAirportRoute: ServicesAirportRoute,
+  ServicesHourlyRoute: ServicesHourlyRoute,
+}
+
+const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
+  ServicesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
   BookRoute: BookRoute,
+  CancellationPolicyRoute: CancellationPolicyRoute,
   ContactRoute: ContactRoute,
+  FaqRoute: FaqRoute,
+  PrivacyRoute: PrivacyRoute,
+  ServicesRoute: ServicesRouteWithChildren,
+  TermsRoute: TermsRoute,
   BookingSuccessRoute: BookingSuccessRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }

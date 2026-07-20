@@ -210,10 +210,20 @@ function SiteFooter() {
             <div className="text-xs uppercase tracking-[0.28em] text-gold">Explore</div>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
               <li><Link to="/" className="hover:text-foreground">Home</Link></li>
+              <li><Link to="/services" className="hover:text-foreground">Services</Link></li>
+              <li><Link to="/services/airport" className="hover:text-foreground">Airport Transportation</Link></li>
+              <li><Link to="/services/hourly" className="hover:text-foreground">Hourly Chauffeur</Link></li>
+              <li><Link to="/about" className="hover:text-foreground">About</Link></li>
+              <li><Link to="/faq" className="hover:text-foreground">FAQ</Link></li>
               <li><Link to="/book" className="hover:text-foreground">Book a Ride</Link></li>
               <li><Link to="/contact" className="hover:text-foreground">Contact</Link></li>
             </ul>
           </div>
+        </div>
+        <div className="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
+          <Link to="/cancellation-policy" className="hover:text-foreground">Cancellation & Refund Policy</Link>
         </div>
         <div className="mt-10 flex flex-col justify-between gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground md:flex-row">
           <div>© {new Date().getFullYear()} Stevie Services LLC. All rights reserved.</div>
