@@ -1,48 +1,67 @@
+## Goal
 
-# Trip tracking & final-fare reconciliation
+Stabilize the existing Stevie Services LLC platform without rebuilding. Preserve Supabase, Stripe, Google Maps, custom domain, and all existing data/routes. Repair, don't replace.
 
-Deliver the "actual fare" system in **3 phases** so each part is testable before the next. Every fare calculation stays on the server, the passenger is never charged more than 20% over estimate without their approval, and the design stays for one driver + one Honda CR-V.
+## Scope of this prompt (foundation only)
 
-## Phase 1 — Fare-estimate transparency & better editing
+Deliberately excluded (reserved for later prompts, as you instructed): redesigning booking, pricing, payments, notifications, dashboards, SMS, email templates, invoices, refunds workflow beyond wiring.
 
-Small, low-risk UX changes plus one migration. Ship first.
+## 1. Audit pass (no code changes)
 
-- **DB migration** — extend `admin_settings` (waiting rates, max auto increase %, waiting toggles, allow off-session charges) and `bookings` (estimate snapshots, `actual_distance_miles`, `actual_duration_minutes`, `pickup_waiting_minutes`, `stop_waiting_minutes`, `billable_waiting_minutes`, `driver_delay_minutes`, `trip_started_at`, `trip_ended_at`, `waiting_started_at`, `gps_tracking_status`, `toll_amount`, `parking_amount`, `estimated_fare`, `final_fare`, `remaining_balance`, `fare_adjustment_percentage`, `customer_fare_policy_accepted_at`, `final_charge_status`). Create `trip_location_points` and `booking_audit_log` tables with RLS.
-- **`/book`** — rename to "Estimated Fare", add the fare-adjustment disclaimer, require a "I accept the fare-adjustment policy" checkbox; store acceptance timestamp on the booking.
-- **`updateMyBooking`** — return the full recomputed quote (miles, minutes, breakdown) instead of just the total.
-- **Edit modal** — live re-quote as pickup / destination / stops change, show new distance / travel time / total before saving.
-- **Dashboard completed rides** — itemized receipt card: estimated vs actual mileage & time, billable waiting, tolls, parking, amount already paid, refund or balance-due, final total.
+Inspect and report on:
+- Route inventory vs. required public pages (Home, About, Services, Airport, Hourly, FAQ, Contact, Book, Privacy, Terms, Cancellation/Refund).
+- Existing DB tables vs. required entities (profiles, bookings, trips, payments, refunds, invoices, reviews, coupons, loyalty, referrals, notifications, saved addresses, audit logs, admin_settings, user_roles, vehicles).
+- Duplicate/legacy modules (e.g. `checkout.functions.ts` legacy vs. `payment.functions.ts` request-first flow).
+- Role guard coverage on `/admin/*` and `/dashboard`.
+- Console errors, missing env vars, broken links.
 
-## Phase 2 — Driver trip tracker + actual fare
+Deliverable: audit summary in chat at the end.
 
-- **New server fns** in `src/lib/trip-tracking.functions.ts`:
-  `startDrivingToPickup`, `driverArrived`, `startWaiting`, `stopWaiting`, `startTrip`, `pauseTrip`, `resumeTrip`, `endTrip`, `recordLocationBatch`, `setDriverDelayMinutes`, `addManualFee` (tolls / parking / stop).
-- **`endTrip`** on the server:
-  1. Snap GPS batch to roads via `roads.googleapis.com/v1/snapToRoads` through the Maps connector gateway. Sum snapped segment distances for `actual_distance_miles`.
-  2. `actual_duration_minutes = (trip_ended_at − trip_started_at) − paused_minutes − driver_delay_minutes`.
-  3. `billable_waiting_minutes = max(0, pickup_waiting + stop_waiting − free_waiting_minutes)`.
-  4. `final_fare = base + actual_miles*per_mile + billable_trip_min*per_min + billable_wait_min*wait_rate + tolls + parking + stops + surcharges − discounts − amount_paid` (server-side only, capped at `max_waiting_charge`).
-  5. Compute `fare_adjustment_percentage` vs `estimated_fare` and set `remaining_balance`.
-- **Driver dashboard** — add the state-machine buttons (Drive to Pickup → Arrived → Waiting → Picked Up → Start Trip → Pause / Resume → End Trip). Background `watchPosition` loop batches `{ lat, lng, accuracy, recorded_at }` every 5–10 s while status is `picked_up` or `trip_in_progress`, POSTing through `recordLocationBatch`. Wake-Lock API kept awake during active trip. Warn on permission loss.
-- **Final-fare review screen** for the driver before pressing "Confirm & charge".
+## 2. Repairs (code changes limited to stabilization)
 
-## Phase 3 — Payment reconciliation & customer protection
+Create only what's missing; skip if present.
 
-- On approve, save the Stripe **customer** + `PaymentMethod` from the Checkout session; set `setup_future_usage: 'off_session'` and store consent flag on the booking.
-- After `endTrip` + driver confirmation:
-  - `remaining_balance <= 0` → auto-refund the overpayment via `stripe.refunds.create`.
-  - `0 < adjustment_percentage <= max_auto_increase (default 20%)` → off-session `PaymentIntent` on the saved method; on failure set `final_charge_status = 'balance_due'` and email a hosted-invoice link.
-  - `adjustment_percentage > max_auto_increase` → skip auto charge, create a hosted invoice, mark `balance_due`, notify admin, expose "Approve final fare" button on customer dashboard.
-- **Customer dashboard** — receipt view with the "Report fare issue" button; itemized breakdown shows amount already paid, remaining charged, final total.
-- **Admin overrides** — every manual change to tracked mileage, minutes, waiting, tolls, or final fare writes an entry into `booking_audit_log { old, new, reason, admin_id, at }`.
+**Public pages** — add stubs with real branded content, SEO head(), and footer links:
+- `/about`
+- `/services`
+- `/services/airport`
+- `/services/hourly`
+- `/faq`
+- `/privacy`
+- `/terms`
+- `/cancellation-policy`
 
-## Security guarantees
+Do NOT touch `/`, `/book`, `/contact`, `/auth`, `/booking/success`, `/dashboard`, `/admin/*` beyond adding footer nav links to the new pages.
 
-- Fare math is executed only inside server functions; RLS keeps clients from writing `actual_*` or fare columns.
-- Roads API + Maps gateway calls stay server-side.
-- Off-session charges require the customer's earlier acceptance of the fare-adjustment policy.
-- Every automatic charge is capped at `max_automatic_fare_increase`.
+**Guest fare display** — hide the per-mile / per-minute breakdown from unauthenticated users on `/book`, showing only the total estimate (per your rule "guests cannot see all detail of the fare"). Signed-in customers still see the itemized breakdown.
 
-## Approval
+**Role guard hardening** — verify `/admin` `beforeLoad` correctly redirects non-admins; add a small `useRole` helper if missing. No policy changes.
 
-Reply **"go phase 1"** to start with the migration + booking UX + edit modal changes. I'll pause after Phase 1 so you can smoke-test before I move to the driver tracker.
+**Error/empty states** — add graceful fallbacks (already partially present) for:
+- Google Maps script load failure on `/book` and `/contact`
+- Fare quote failure
+- Booking submission failure
+Reuse existing toast + inline error patterns.
+
+**Mobile polish on driver dashboard** — ensure action buttons (Approve, Decline, En Route, Arrived, Start, Complete) meet a 44px min tap target. CSS-only tweaks.
+
+**Footer** — add links to the new legal/info pages.
+
+## 3. Database
+
+No destructive changes. Only additive if a required table is missing after audit. Expected outcome based on current schema: **no migration needed**; report will confirm.
+
+## 4. Explicitly NOT doing this turn
+
+- No changes to auth flows, Stripe wiring, webhook, quote engine, trip tracker, reconciliation logic, or admin settings shape.
+- No new SMS / email provider setup.
+- No new roles table or RLS rewrites.
+- No visual redesign.
+
+## 5. Deliverable at end
+
+A summary covering: repaired, preserved, still incomplete, blocked-on-credentials, DB changes (expected: none), files touched.
+
+---
+
+Approve to proceed, or tell me which sections to trim/expand.
