@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { Mail, Lock, User, Phone, Loader2 } from "lucide-react";
-import stevieLogo from "@/assets/stevie-logo.png.asset.json";
+import stevieLogo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -87,7 +87,7 @@ function AuthPage() {
     <div className="relative min-h-[80vh]">
       <div className="absolute inset-0 -z-10 bg-radial-gold" />
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-16">
-        <img src={stevieLogo.url} alt="Stevie Services" className="h-16 w-16 rounded-full ring-1 ring-gold/40 shadow-gold-glow" />
+        <img src={stevieLogo} alt="Stevie Services" className="h-16 w-16 rounded-full object-cover ring-1 ring-gold/40 shadow-gold-glow" />
         <h1 className="mt-6 font-display text-3xl font-semibold text-center">
           {mode === "signin" ? "Welcome back" : "Create your account"}
         </h1>

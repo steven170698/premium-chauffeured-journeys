@@ -16,7 +16,7 @@ import { LogOut, LayoutDashboard } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import stevieLogo from "@/assets/stevie-logo.png.asset.json";
+import stevieLogo from "@/assets/logo.png";
 
 function NotFoundComponent() {
   return (
@@ -102,7 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: stevieLogo.url },
+      { rel: "icon", type: "image/png", href: stevieLogo },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -142,7 +142,7 @@ function SiteHeader({ user }: { user: User | null }) {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link to="/" className="flex items-center gap-3">
           <img
-            src={stevieLogo.url}
+            src={stevieLogo}
             alt="Stevie Services LLC"
             className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-gold/40 shadow-gold-glow"
           />
@@ -191,7 +191,7 @@ function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-3">
           <div>
             <div className="flex items-center gap-3">
-              <img src={stevieLogo.url} alt="Stevie Services LLC" className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-gold/40" />
+              <img src={stevieLogo} alt="Stevie Services LLC" className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-gold/40" />
               <div className="font-display text-lg font-semibold">Stevie Services LLC</div>
             </div>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
