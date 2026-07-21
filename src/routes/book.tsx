@@ -73,6 +73,9 @@ function BookPage() {
   // Submit
   const [submitting, setSubmitting] = useState(false);
   const [fareAccepted, setFareAccepted] = useState(false);
+  // Stable per-form key so double-clicks / refreshes / retries never create
+  // duplicate bookings (enforced server-side + by a unique index).
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
 
 
   const extraStops = useMemo(() => (extraStopText.trim() ? 1 : 0), [extraStopText]);
@@ -162,6 +165,7 @@ function BookPage() {
           flightNumber: flightNumber || null,
           specialInstructions: specialInstructions || null,
           fareAdjustmentPolicyAccepted: fareAccepted,
+          idempotencyKey,
         },
       });
 

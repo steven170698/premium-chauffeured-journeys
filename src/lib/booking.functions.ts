@@ -25,6 +25,17 @@ const requestInputSchema = z.object({
   flightNumber: z.string().optional().nullable(),
   specialInstructions: z.string().optional().nullable(),
   fareAdjustmentPolicyAccepted: z.boolean().optional().default(false),
+  // Phase 2 additions
+  firstName: z.string().optional().nullable(),
+  lastName: z.string().optional().nullable(),
+  tripType: z.string().optional().nullable(),
+  airline: z.string().optional().nullable(),
+  airportTerminal: z.string().optional().nullable(),
+  meetAndGreet: z.boolean().optional().default(false),
+  childSeat: z.boolean().optional().default(false),
+  accessibilityRequest: z.string().optional().nullable(),
+  hourlyHours: z.number().optional().nullable(),
+  idempotencyKey: z.string().optional().nullable(),
 });
 
 
@@ -90,6 +101,25 @@ export const requestBooking = createServerFn({ method: "POST" })
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+      // Duplicate-submission guard (double-click / refresh / retry). If a request
+      // with the same idempotency key already produced a booking, return it as-is.
+      if (data.idempotencyKey) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: existing } = await (supabaseAdmin.from("bookings") as any)
+          .select("id, reservation_number, total, trip_status, approval_deadline_at")
+          .eq("idempotency_key", data.idempotencyKey)
+          .maybeSingle();
+        if (existing) {
+          return {
+            bookingId: existing.id,
+            reservationNumber: existing.reservation_number,
+            tripStatus: existing.trip_status,
+            total: Number(existing.total),
+            approvalDeadlineAt: existing.approval_deadline_at,
+          };
+        }
+      }
+
       // Load approval-workflow settings
       const { data: settings } = await supabaseAdmin
         .from("admin_settings")
@@ -118,8 +148,8 @@ export const requestBooking = createServerFn({ method: "POST" })
       const initialStatus =
         !requireApproval && autoConfirm ? "awaiting_payment" : "pending_approval";
 
-      const { data: booking, error } = await supabaseAdmin
-        .from("bookings")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: booking, error } = await (supabaseAdmin.from("bookings") as any)
         .insert({
           user_id: userId,
           full_name: data.fullName,
@@ -159,8 +189,22 @@ export const requestBooking = createServerFn({ method: "POST" })
           customer_fare_policy_accepted_at: data.fareAdjustmentPolicyAccepted
             ? new Date().toISOString()
             : null,
+          // Phase 2 additions
+          first_name: data.firstName ?? null,
+          last_name: data.lastName ?? null,
+          trip_type: data.tripType ?? (data.isRoundTrip ? "round_trip" : "one_way"),
+          flight_number: data.flightNumber ?? null,
+          airline: data.airline ?? null,
+          airport_terminal: data.airportTerminal ?? null,
+          meet_and_greet: data.meetAndGreet ?? false,
+          child_seat: data.childSeat ?? false,
+          accessibility_request: data.accessibilityRequest ?? null,
+          hourly_hours: data.hourlyHours ?? null,
+          pickup_place_id: data.pickup.placeId,
+          destination_place_id: data.destination.placeId,
+          booking_source: "website",
+          idempotency_key: data.idempotencyKey ?? null,
         })
-
         .select("id, reservation_number, total, trip_status, approval_deadline_at")
         .single();
 
@@ -202,6 +246,14 @@ export const requestBooking = createServerFn({ method: "POST" })
             bookingId: booking.id,
           }),
         ]);
+
+        const { notifyBookingSubmitted } = await import("@/lib/notifications.server");
+        await notifyBookingSubmitted({
+          bookingId: booking.id,
+          reservationNumber: booking.reservation_number,
+          customerUserId: userId,
+          customerName: data.fullName,
+        });
       } catch (notifyErr) {
         console.error(
           "[booking] notification error (non-fatal):",
