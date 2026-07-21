@@ -14,6 +14,7 @@ const quoteInputSchema = z.object({
   destination: placeSchema,
   extraStops: z.number().int().min(0).max(10).optional().default(0),
   roundTrip: z.boolean().optional().default(false),
+  pickupAt: z.string().optional().nullable(),
 });
 
 export type QuoteInput = z.infer<typeof quoteInputSchema>;
@@ -27,6 +28,7 @@ export type QuoteResult = {
   bookingFee: number;
   airportSurcharge: number;
   stopsFee: number;
+  surcharges: number;
   tollsEstimate: number;
   subtotal: number;
   total: number;

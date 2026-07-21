@@ -97,6 +97,7 @@ export const requestBooking = createServerFn({ method: "POST" })
         destination: data.destination,
         extraStops: data.extraStop ? 1 : 0,
         roundTrip: data.isRoundTrip,
+        pickupAt: data.pickupAt,
       });
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -204,6 +205,7 @@ export const requestBooking = createServerFn({ method: "POST" })
           destination_place_id: data.destination.placeId,
           booking_source: "website",
           idempotency_key: data.idempotencyKey ?? null,
+          surcharge_amount: quote.surcharges,
         })
         .select("id, reservation_number, total, trip_status, approval_deadline_at")
         .single();

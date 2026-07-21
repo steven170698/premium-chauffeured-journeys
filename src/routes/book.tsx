@@ -119,7 +119,11 @@ function BookPage() {
     let cancelled = false;
     setLoadingQuote(true);
     setQuoteError(null);
-    runQuote({ data: { pickup, destination, extraStops, roundTrip } })
+    const pickupAtIso =
+      pickupDate && pickupTime
+        ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
+        : null;
+    runQuote({ data: { pickup, destination, extraStops, roundTrip, pickupAt: pickupAtIso } })
       .then((res) => {
         if (!cancelled) setQuote(res);
       })
@@ -136,7 +140,7 @@ function BookPage() {
     return () => {
       cancelled = true;
     };
-  }, [pickup, destination, extraStops, roundTrip, runQuote]);
+  }, [pickup, destination, extraStops, roundTrip, pickupDate, pickupTime, runQuote]);
 
   const canSubmit = Boolean(
     quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime && fareAccepted,
@@ -570,6 +574,7 @@ function BookPage() {
                 <BreakdownRow label="Booking Fee" value={money(quote?.bookingFee)} />
                 <BreakdownRow label="Airport Surcharge" value={money(quote?.airportSurcharge)} />
                 <BreakdownRow label="Extra Stops" value={money(quote?.stopsFee)} />
+                <BreakdownRow label="Surcharges" value={money(quote?.surcharges)} />
                 <BreakdownRow label="Estimated Tolls" value={money(quote?.tollsEstimate)} />
                 {quote?.roundTrip && <BreakdownRow label="Round Trip" value="× 2" />}
                 <div className="hairline" />
