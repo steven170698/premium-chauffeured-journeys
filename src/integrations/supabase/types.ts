@@ -23,11 +23,14 @@ export type Database = {
           auto_decline_on_timeout: boolean
           base_fare: number
           booking_fee: number
+          child_seat_fee: number
           deposit_percentage: number
           free_pickup_waiting_minutes: number
           free_stop_waiting_minutes: number
           google_calendar_id: string | null
           hold_during_approval: boolean
+          holiday_surcharge_pct: number
+          hourly_rate: number
           id: number
           loyalty_10_discount: number
           loyalty_20_vip: boolean
@@ -35,8 +38,14 @@ export type Database = {
           loyalty_combines_with_coupons: boolean
           max_automatic_fare_increase: number
           max_waiting_charge: number
+          meet_greet_fee: number
           minimum_advance_notice_minutes: number
           minimum_booking_block_minutes: number
+          minimum_fare: number
+          minimum_hourly_hours: number
+          night_end_hour: number
+          night_start_hour: number
+          night_surcharge_pct: number
           payment_window_minutes: number
           per_mile_rate: number
           per_minute_rate: number
@@ -51,8 +60,10 @@ export type Database = {
           sms_enabled: Json
           stop_fee: number
           stop_waiting_rate: number
+          surcharge_stacking: string
           updated_at: string
           waiting_enabled: boolean
+          weekend_surcharge_pct: number
         }
         Insert: {
           airport_surcharge?: number
@@ -62,11 +73,14 @@ export type Database = {
           auto_decline_on_timeout?: boolean
           base_fare?: number
           booking_fee?: number
+          child_seat_fee?: number
           deposit_percentage?: number
           free_pickup_waiting_minutes?: number
           free_stop_waiting_minutes?: number
           google_calendar_id?: string | null
           hold_during_approval?: boolean
+          holiday_surcharge_pct?: number
+          hourly_rate?: number
           id?: number
           loyalty_10_discount?: number
           loyalty_20_vip?: boolean
@@ -74,8 +88,14 @@ export type Database = {
           loyalty_combines_with_coupons?: boolean
           max_automatic_fare_increase?: number
           max_waiting_charge?: number
+          meet_greet_fee?: number
           minimum_advance_notice_minutes?: number
           minimum_booking_block_minutes?: number
+          minimum_fare?: number
+          minimum_hourly_hours?: number
+          night_end_hour?: number
+          night_start_hour?: number
+          night_surcharge_pct?: number
           payment_window_minutes?: number
           per_mile_rate?: number
           per_minute_rate?: number
@@ -90,8 +110,10 @@ export type Database = {
           sms_enabled?: Json
           stop_fee?: number
           stop_waiting_rate?: number
+          surcharge_stacking?: string
           updated_at?: string
           waiting_enabled?: boolean
+          weekend_surcharge_pct?: number
         }
         Update: {
           airport_surcharge?: number
@@ -101,11 +123,14 @@ export type Database = {
           auto_decline_on_timeout?: boolean
           base_fare?: number
           booking_fee?: number
+          child_seat_fee?: number
           deposit_percentage?: number
           free_pickup_waiting_minutes?: number
           free_stop_waiting_minutes?: number
           google_calendar_id?: string | null
           hold_during_approval?: boolean
+          holiday_surcharge_pct?: number
+          hourly_rate?: number
           id?: number
           loyalty_10_discount?: number
           loyalty_20_vip?: boolean
@@ -113,8 +138,14 @@ export type Database = {
           loyalty_combines_with_coupons?: boolean
           max_automatic_fare_increase?: number
           max_waiting_charge?: number
+          meet_greet_fee?: number
           minimum_advance_notice_minutes?: number
           minimum_booking_block_minutes?: number
+          minimum_fare?: number
+          minimum_hourly_hours?: number
+          night_end_hour?: number
+          night_start_hour?: number
+          night_surcharge_pct?: number
           payment_window_minutes?: number
           per_mile_rate?: number
           per_minute_rate?: number
@@ -129,8 +160,10 @@ export type Database = {
           sms_enabled?: Json
           stop_fee?: number
           stop_waiting_rate?: number
+          surcharge_stacking?: string
           updated_at?: string
           waiting_enabled?: boolean
+          weekend_surcharge_pct?: number
         }
         Relationships: []
       }
@@ -235,26 +268,76 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_stops: {
+        Row: {
+          address: string
+          booking_id: string
+          created_at: string
+          id: string
+          lat: number | null
+          lng: number | null
+          place_id: string | null
+          position: number
+        }
+        Insert: {
+          address: string
+          booking_id: string
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          place_id?: string | null
+          position?: number
+        }
+        Update: {
+          address?: string
+          booking_id?: string
+          created_at?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          place_id?: string | null
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_stops_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
+          accessibility_request: string | null
           actual_distance_miles: number | null
           actual_duration_minutes: number | null
+          airline: string | null
           airport_stop_fees: number
+          airport_terminal: string | null
           amount_paid: number
           approval_deadline_at: string | null
           approved_at: string | null
+          approved_by: string | null
           bags: number
           balance_due: number
           base_fare: number
           billable_waiting_minutes: number
           booking_fee: number
+          booking_source: string
+          child_seat: boolean
           coupon_id: string | null
           created_at: string
           customer_fare_policy_accepted_at: string | null
+          decline_reason: string | null
           declined_at: string | null
+          declined_by: string | null
           destination_address: string
           destination_lat: number | null
           destination_lng: number | null
+          destination_place_id: string | null
           discount_amount: number
           distance_miles: number | null
           driver_delay_minutes: number
@@ -269,13 +352,19 @@ export type Database = {
           fare_adjustment_percentage: number | null
           final_charge_status: string | null
           final_fare: number | null
+          first_name: string | null
+          flight_number: string | null
           free_waiting_minutes: number
           full_name: string
           google_calendar_event_id: string | null
           gps_tracking_status: string | null
+          hourly_hours: number | null
           id: string
+          idempotency_key: string | null
           is_round_trip: boolean
+          last_name: string | null
           loyalty_discount_applied: number
+          meet_and_greet: boolean
           mileage_charge: number
           parking_amount: number
           passengers: number
@@ -286,6 +375,7 @@ export type Database = {
           pickup_at: string
           pickup_lat: number | null
           pickup_lng: number | null
+          pickup_place_id: string | null
           pickup_waiting_minutes: number
           referred_by_code: string | null
           remaining_balance: number | null
@@ -298,6 +388,7 @@ export type Database = {
           stripe_payment_method_id: string | null
           stripe_session_id: string | null
           subtotal: number
+          surcharge_amount: number
           time_charge: number
           toll_amount: number
           toll_estimate: number
@@ -305,30 +396,40 @@ export type Database = {
           trip_ended_at: string | null
           trip_started_at: string | null
           trip_status: Database["public"]["Enums"]["trip_status"]
+          trip_type: string
           updated_at: string
           user_id: string | null
           waiting_ended_at: string | null
           waiting_started_at: string | null
         }
         Insert: {
+          accessibility_request?: string | null
           actual_distance_miles?: number | null
           actual_duration_minutes?: number | null
+          airline?: string | null
           airport_stop_fees?: number
+          airport_terminal?: string | null
           amount_paid?: number
           approval_deadline_at?: string | null
           approved_at?: string | null
+          approved_by?: string | null
           bags?: number
           balance_due?: number
           base_fare?: number
           billable_waiting_minutes?: number
           booking_fee?: number
+          booking_source?: string
+          child_seat?: boolean
           coupon_id?: string | null
           created_at?: string
           customer_fare_policy_accepted_at?: string | null
+          decline_reason?: string | null
           declined_at?: string | null
+          declined_by?: string | null
           destination_address: string
           destination_lat?: number | null
           destination_lng?: number | null
+          destination_place_id?: string | null
           discount_amount?: number
           distance_miles?: number | null
           driver_delay_minutes?: number
@@ -343,13 +444,19 @@ export type Database = {
           fare_adjustment_percentage?: number | null
           final_charge_status?: string | null
           final_fare?: number | null
+          first_name?: string | null
+          flight_number?: string | null
           free_waiting_minutes?: number
           full_name: string
           google_calendar_event_id?: string | null
           gps_tracking_status?: string | null
+          hourly_hours?: number | null
           id?: string
+          idempotency_key?: string | null
           is_round_trip?: boolean
+          last_name?: string | null
           loyalty_discount_applied?: number
+          meet_and_greet?: boolean
           mileage_charge?: number
           parking_amount?: number
           passengers?: number
@@ -360,6 +467,7 @@ export type Database = {
           pickup_at: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pickup_place_id?: string | null
           pickup_waiting_minutes?: number
           referred_by_code?: string | null
           remaining_balance?: number | null
@@ -372,6 +480,7 @@ export type Database = {
           stripe_payment_method_id?: string | null
           stripe_session_id?: string | null
           subtotal?: number
+          surcharge_amount?: number
           time_charge?: number
           toll_amount?: number
           toll_estimate?: number
@@ -379,30 +488,40 @@ export type Database = {
           trip_ended_at?: string | null
           trip_started_at?: string | null
           trip_status?: Database["public"]["Enums"]["trip_status"]
+          trip_type?: string
           updated_at?: string
           user_id?: string | null
           waiting_ended_at?: string | null
           waiting_started_at?: string | null
         }
         Update: {
+          accessibility_request?: string | null
           actual_distance_miles?: number | null
           actual_duration_minutes?: number | null
+          airline?: string | null
           airport_stop_fees?: number
+          airport_terminal?: string | null
           amount_paid?: number
           approval_deadline_at?: string | null
           approved_at?: string | null
+          approved_by?: string | null
           bags?: number
           balance_due?: number
           base_fare?: number
           billable_waiting_minutes?: number
           booking_fee?: number
+          booking_source?: string
+          child_seat?: boolean
           coupon_id?: string | null
           created_at?: string
           customer_fare_policy_accepted_at?: string | null
+          decline_reason?: string | null
           declined_at?: string | null
+          declined_by?: string | null
           destination_address?: string
           destination_lat?: number | null
           destination_lng?: number | null
+          destination_place_id?: string | null
           discount_amount?: number
           distance_miles?: number | null
           driver_delay_minutes?: number
@@ -417,13 +536,19 @@ export type Database = {
           fare_adjustment_percentage?: number | null
           final_charge_status?: string | null
           final_fare?: number | null
+          first_name?: string | null
+          flight_number?: string | null
           free_waiting_minutes?: number
           full_name?: string
           google_calendar_event_id?: string | null
           gps_tracking_status?: string | null
+          hourly_hours?: number | null
           id?: string
+          idempotency_key?: string | null
           is_round_trip?: boolean
+          last_name?: string | null
           loyalty_discount_applied?: number
+          meet_and_greet?: boolean
           mileage_charge?: number
           parking_amount?: number
           passengers?: number
@@ -434,6 +559,7 @@ export type Database = {
           pickup_at?: string
           pickup_lat?: number | null
           pickup_lng?: number | null
+          pickup_place_id?: string | null
           pickup_waiting_minutes?: number
           referred_by_code?: string | null
           remaining_balance?: number | null
@@ -446,6 +572,7 @@ export type Database = {
           stripe_payment_method_id?: string | null
           stripe_session_id?: string | null
           subtotal?: number
+          surcharge_amount?: number
           time_charge?: number
           toll_amount?: number
           toll_estimate?: number
@@ -453,6 +580,7 @@ export type Database = {
           trip_ended_at?: string | null
           trip_started_at?: string | null
           trip_status?: Database["public"]["Enums"]["trip_status"]
+          trip_type?: string
           updated_at?: string
           user_id?: string | null
           waiting_ended_at?: string | null
@@ -674,6 +802,53 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          provider_id: string | null
+          recipient: string
+          status: string
+          subject: string | null
+          user_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          provider_id?: string | null
+          recipient: string
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          provider_id?: string | null
+          recipient?: string
+          status?: string
+          subject?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loyalty_accounts: {
         Row: {
           available_discount_percent: number
@@ -751,6 +926,86 @@ export type Database = {
           sms_enabled?: boolean
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          audience: string
+          body: string | null
+          booking_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          audience?: string
+          body?: string | null
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          audience?: string
+          body?: string | null
+          booking_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_holidays: {
+        Row: {
+          created_at: string
+          holiday_date: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          surcharge_pct: number
+        }
+        Insert: {
+          created_at?: string
+          holiday_date: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          surcharge_pct?: number
+        }
+        Update: {
+          created_at?: string
+          holiday_date?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          surcharge_pct?: number
         }
         Relationships: []
       }
@@ -928,6 +1183,62 @@ export type Database = {
           },
         ]
       }
+      support_requests: {
+        Row: {
+          admin_notes: string | null
+          assigned_to: string | null
+          booking_id: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          phone: string | null
+          source: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          assigned_to?: string | null
+          booking_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          assigned_to?: string | null
+          booking_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_requests_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_location_points: {
         Row: {
           accuracy: number | null
@@ -1032,25 +1343,58 @@ export type Database = {
           airport_surcharge: number | null
           base_fare: number | null
           booking_fee: number | null
+          child_seat_fee: number | null
+          holiday_surcharge_pct: number | null
+          hourly_rate: number | null
+          meet_greet_fee: number | null
+          minimum_fare: number | null
+          minimum_hourly_hours: number | null
+          night_end_hour: number | null
+          night_start_hour: number | null
+          night_surcharge_pct: number | null
           per_mile_rate: number | null
           per_minute_rate: number | null
           stop_fee: number | null
+          surcharge_stacking: string | null
+          weekend_surcharge_pct: number | null
         }
         Insert: {
           airport_surcharge?: number | null
           base_fare?: number | null
           booking_fee?: number | null
+          child_seat_fee?: number | null
+          holiday_surcharge_pct?: number | null
+          hourly_rate?: number | null
+          meet_greet_fee?: number | null
+          minimum_fare?: number | null
+          minimum_hourly_hours?: number | null
+          night_end_hour?: number | null
+          night_start_hour?: number | null
+          night_surcharge_pct?: number | null
           per_mile_rate?: number | null
           per_minute_rate?: number | null
           stop_fee?: number | null
+          surcharge_stacking?: string | null
+          weekend_surcharge_pct?: number | null
         }
         Update: {
           airport_surcharge?: number | null
           base_fare?: number | null
           booking_fee?: number | null
+          child_seat_fee?: number | null
+          holiday_surcharge_pct?: number | null
+          hourly_rate?: number | null
+          meet_greet_fee?: number | null
+          minimum_fare?: number | null
+          minimum_hourly_hours?: number | null
+          night_end_hour?: number | null
+          night_start_hour?: number | null
+          night_surcharge_pct?: number | null
           per_mile_rate?: number | null
           per_minute_rate?: number | null
           stop_fee?: number | null
+          surcharge_stacking?: string | null
+          weekend_surcharge_pct?: number | null
         }
         Relationships: []
       }
