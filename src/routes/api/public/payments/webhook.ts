@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             const { data: booking } = await supabaseAdmin
               .from("bookings")
               .select(
-                "id, trip_status, payment_deadline_at, pickup_at, estimated_end_at, amount_paid, final_fare, total",
+                "id, trip_status, payment_deadline_at, pickup_at, estimated_end_at, amount_paid, final_fare, total, email, full_name, reservation_number, pickup_address, destination_address, user_id",
               )
               .eq("id", bookingId)
               .maybeSingle();
@@ -89,6 +89,52 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
                 .eq("trip_status", "awaiting_payment");
               if (error) {
                 console.error("webhook confirm failed:", error);
+              } else {
+                // Payment confirmed — send confirmation email + notifications (best-effort).
+                try {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const b = booking as any;
+                  const { sendRendered } = await import("@/lib/email.server");
+                  const { bookingConfirmedEmail } = await import("@/lib/email-templates");
+                  const { createNotification } = await import("@/lib/notifications.server");
+                  const emailData = {
+                    bookingId,
+                    reservationNumber: b.reservation_number,
+                    customerName: b.full_name,
+                    pickupAddress: b.pickup_address,
+                    destinationAddress: b.destination_address,
+                    pickupAt: b.pickup_at,
+                    amountPaid: paid,
+                    approvedFare: Number(b.total),
+                  };
+                  await Promise.allSettled([
+                    sendRendered(b.email, bookingConfirmedEmail(emailData), {
+                      eventType: "booking_confirmed",
+                      bookingId,
+                      userId: b.user_id,
+                    }),
+                    createNotification({
+                      userId: b.user_id,
+                      audience: "customer",
+                      bookingId,
+                      type: "booking_confirmed",
+                      title: "Reservation confirmed",
+                      body: `${b.reservation_number} is confirmed — payment received.`,
+                      link: `/dashboard?booking=${bookingId}`,
+                    }),
+                    createNotification({
+                      userId: null,
+                      audience: "admin",
+                      bookingId,
+                      type: "payment_received",
+                      title: "Payment received",
+                      body: `${b.reservation_number} confirmed.`,
+                      link: `/admin/bookings?booking=${bookingId}`,
+                    }),
+                  ]);
+                } catch (notifyErr) {
+                  console.error("webhook confirm notify (non-fatal):", notifyErr);
+                }
               }
             } else {
               await supabaseAdmin

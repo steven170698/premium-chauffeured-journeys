@@ -117,17 +117,55 @@ export const approveBooking = createServerFn({ method: "POST" })
       );
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error } = await supabaseAdmin
-        .from("bookings")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabaseAdmin.from("bookings") as any)
         .update({
           trip_status: "awaiting_payment",
           approved_at: new Date().toISOString(),
+          approved_by: context.userId,
           payment_deadline_at: paymentDeadline.toISOString(),
           stripe_session_id: session.id,
         })
         .eq("id", data.bookingId)
         .eq("trip_status", "pending_approval");
       if (error) return { error: error.message };
+
+      // Approval email + notification (best-effort; never blocks approval).
+      try {
+        const { sendRendered } = await import("@/lib/email.server");
+        const { bookingApprovedEmail } = await import("@/lib/email-templates");
+        const { createNotification } = await import("@/lib/notifications.server");
+        const site = (process.env.PUBLIC_SITE_URL || "https://stevieservicesllc.com").replace(/\/$/, "");
+        const payUrl = `${site}/dashboard?booking=${booking.id}&pay=1`;
+        await Promise.allSettled([
+          sendRendered(
+            booking.email,
+            bookingApprovedEmail({
+              bookingId: booking.id,
+              reservationNumber: booking.reservation_number,
+              customerName: booking.full_name,
+              pickupAddress: booking.pickup_address,
+              destinationAddress: booking.destination_address,
+              pickupAt: booking.pickup_at,
+              approvedFare: Number(booking.total),
+              paymentUrl: payUrl,
+              paymentDeadlineAt: paymentDeadline.toISOString(),
+            }),
+            { eventType: "booking_approved", bookingId: booking.id, userId: booking.user_id },
+          ),
+          createNotification({
+            userId: booking.user_id,
+            audience: "customer",
+            bookingId: booking.id,
+            type: "booking_approved",
+            title: "Ride approved — payment required",
+            body: `${booking.reservation_number} is approved. Pay to confirm your reservation.`,
+            link: `/dashboard?booking=${booking.id}&pay=1`,
+          }),
+        ]);
+      } catch (e) {
+        console.error("approve notify (non-fatal):", e instanceof Error ? e.message : e);
+      }
 
       return {
         ok: true,
@@ -143,20 +181,67 @@ export const approveBooking = createServerFn({ method: "POST" })
 export const declineBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({ bookingId: z.string().uuid() }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        reason: z.string().trim().max(500).optional().nullable(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("bookings")
+    const reason =
+      data.reason?.trim() || "We're unable to accommodate this request at this time.";
+
+    // Load booking details for the email before the status flips (best-effort).
+    const booking = await loadBooking(data.bookingId).catch(() => null);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabaseAdmin.from("bookings") as any)
       .update({
         trip_status: "declined",
         declined_at: new Date().toISOString(),
+        declined_by: context.userId,
+        decline_reason: reason,
       })
       .eq("id", data.bookingId)
       .in("trip_status", ["pending_approval", "awaiting_payment"]);
     if (error) return { error: error.message };
+
+    if (booking) {
+      try {
+        const { sendRendered } = await import("@/lib/email.server");
+        const { bookingDeclinedEmail } = await import("@/lib/email-templates");
+        const { createNotification } = await import("@/lib/notifications.server");
+        await Promise.allSettled([
+          sendRendered(
+            booking.email,
+            bookingDeclinedEmail({
+              bookingId: booking.id,
+              reservationNumber: booking.reservation_number,
+              customerName: booking.full_name,
+              pickupAddress: booking.pickup_address,
+              destinationAddress: booking.destination_address,
+              pickupAt: booking.pickup_at,
+              declineReason: reason,
+            }),
+            { eventType: "booking_declined", bookingId: booking.id, userId: booking.user_id },
+          ),
+          createNotification({
+            userId: booking.user_id,
+            audience: "customer",
+            bookingId: booking.id,
+            type: "booking_declined",
+            title: "Ride request update",
+            body: `We couldn't accept ${booking.reservation_number}. You have not been charged.`,
+            link: `/dashboard?booking=${booking.id}`,
+          }),
+        ]);
+      } catch (e) {
+        console.error("decline notify (non-fatal):", e instanceof Error ? e.message : e);
+      }
+    }
     return { ok: true };
   });
 

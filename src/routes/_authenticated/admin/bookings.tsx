@@ -86,9 +86,10 @@ function AdminBookings() {
   });
 
   const declineMut = useMutation({
-    mutationFn: (bookingId: string) => declineBooking({ data: { bookingId } }),
+    mutationFn: (v: { bookingId: string; reason: string }) =>
+      declineBooking({ data: v }),
     onSuccess: () => {
-      toast.success("Request declined");
+      toast.success("Request declined — customer notified");
       invalidate();
     },
     onError: (e) => toast.error((e as Error).message),
@@ -198,7 +199,13 @@ function AdminBookings() {
                           </button>
                           <button
                             disabled={declineMut.isPending}
-                            onClick={() => declineMut.mutate(b.id)}
+                            onClick={() => {
+                              const reason = window.prompt(
+                                "Reason for declining (shown to the customer):",
+                              );
+                              if (reason === null) return;
+                              declineMut.mutate({ bookingId: b.id, reason });
+                            }}
                             className="rounded-full border border-red-500/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-red-400 hover:bg-red-500/10 disabled:opacity-50"
                           >
                             Decline
