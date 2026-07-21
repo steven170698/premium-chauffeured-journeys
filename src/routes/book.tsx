@@ -58,12 +58,19 @@ function BookPage() {
   const [returnDate, setReturnDate] = useState("");
   const [returnTime, setReturnTime] = useState("");
 
-  // Details (defaults kept for signed-in users)
-  const [passengers] = useState(1);
-  const [bags] = useState(0);
-  const [flightNumber] = useState("");
-  const [extraStopText] = useState("");
-  const [specialInstructions] = useState("");
+  // Details
+  const [passengers, setPassengers] = useState(1);
+  const [bags, setBags] = useState(0);
+  const [flightNumber, setFlightNumber] = useState("");
+  const [extraStopText, setExtraStopText] = useState("");
+  const [specialInstructions, setSpecialInstructions] = useState("");
+  const [tripType, setTripType] = useState("one_way");
+  const [airline, setAirline] = useState("");
+  const [airportTerminal, setAirportTerminal] = useState("");
+  const [meetAndGreet, setMeetAndGreet] = useState(false);
+  const [childSeat, setChildSeat] = useState(false);
+  const [accessibilityRequest, setAccessibilityRequest] = useState("");
+  const [hourlyHours, setHourlyHours] = useState("");
 
   // Quote
   const [quote, setQuote] = useState<QuoteResult | null>(null);
@@ -166,6 +173,13 @@ function BookPage() {
           specialInstructions: specialInstructions || null,
           fareAdjustmentPolicyAccepted: fareAccepted,
           idempotencyKey,
+          tripType,
+          airline: airline || null,
+          airportTerminal: airportTerminal || null,
+          meetAndGreet,
+          childSeat,
+          accessibilityRequest: accessibilityRequest || null,
+          hourlyHours: hourlyHours ? Number(hourlyHours) : null,
         },
       });
 
@@ -339,6 +353,152 @@ function BookPage() {
                     </Field>
                   </div>
                 )}
+              </div>
+            </Fieldset>
+
+            <Divider />
+
+            <Fieldset title="Passengers & Preferences" step={isSignedIn ? "02" : "03"}>
+              <div className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Service Type">
+                    <select
+                      className={inputCls}
+                      value={tripType}
+                      onChange={(e) => setTripType(e.target.value)}
+                    >
+                      <option value="one_way">One-way trip</option>
+                      <option value="airport_pickup">Airport pickup</option>
+                      <option value="airport_dropoff">Airport drop-off</option>
+                      <option value="hourly">Hourly chauffeur</option>
+                      <option value="corporate">Corporate</option>
+                      <option value="special_event">Special event</option>
+                    </select>
+                  </Field>
+                  {tripType === "hourly" && (
+                    <Field label="Hours">
+                      <input
+                        type="number"
+                        min={2}
+                        className={inputCls}
+                        placeholder="e.g. 3"
+                        value={hourlyHours}
+                        onChange={(e) => setHourlyHours(e.target.value)}
+                      />
+                    </Field>
+                  )}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Passengers">
+                    <input
+                      type="number"
+                      min={1}
+                      max={8}
+                      className={inputCls}
+                      value={passengers}
+                      onChange={(e) =>
+                        setPassengers(Math.max(1, Math.min(8, Number(e.target.value) || 1)))
+                      }
+                    />
+                  </Field>
+                  <Field label="Bags">
+                    <input
+                      type="number"
+                      min={0}
+                      max={20}
+                      className={inputCls}
+                      value={bags}
+                      onChange={(e) =>
+                        setBags(Math.max(0, Math.min(20, Number(e.target.value) || 0)))
+                      }
+                    />
+                  </Field>
+                </div>
+
+                {(tripType === "airport_pickup" || tripType === "airport_dropoff") && (
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <Field label="Flight Number">
+                      <input
+                        type="text"
+                        className={inputCls}
+                        placeholder="e.g. DL123"
+                        value={flightNumber}
+                        onChange={(e) => setFlightNumber(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Airline">
+                      <input
+                        type="text"
+                        className={inputCls}
+                        placeholder="e.g. Delta"
+                        value={airline}
+                        onChange={(e) => setAirline(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Terminal">
+                      <input
+                        type="text"
+                        className={inputCls}
+                        placeholder="e.g. Terminal 4"
+                        value={airportTerminal}
+                        onChange={(e) => setAirportTerminal(e.target.value)}
+                      />
+                    </Field>
+                  </div>
+                )}
+
+                <Field label="Additional Stop" icon={<MapPin className="h-4 w-4 text-gold" />}>
+                  <input
+                    type="text"
+                    className={inputCls}
+                    placeholder="Optional stop along the way"
+                    value={extraStopText}
+                    onChange={(e) => setExtraStopText(e.target.value)}
+                  />
+                  <Hint>Adds a stop fee and updates the estimate.</Hint>
+                </Field>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex items-center gap-3 rounded-2xl border border-border/60 bg-secondary/40 p-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={meetAndGreet}
+                      onChange={(e) => setMeetAndGreet(e.target.checked)}
+                      className="h-4 w-4 accent-[var(--gold)]"
+                    />
+                    <span className="text-sm font-medium">Meet &amp; greet</span>
+                  </label>
+                  <label className="flex items-center gap-3 rounded-2xl border border-border/60 bg-secondary/40 p-4 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={childSeat}
+                      onChange={(e) => setChildSeat(e.target.checked)}
+                      className="h-4 w-4 accent-[var(--gold)]"
+                    />
+                    <span className="text-sm font-medium">Child seat</span>
+                  </label>
+                </div>
+
+                <Field label="Accessibility Request">
+                  <input
+                    type="text"
+                    className={inputCls}
+                    placeholder="e.g. wheelchair-accessible, extra assistance"
+                    value={accessibilityRequest}
+                    onChange={(e) => setAccessibilityRequest(e.target.value)}
+                  />
+                </Field>
+
+                <Field label="Special Instructions">
+                  <textarea
+                    rows={3}
+                    className={inputCls}
+                    placeholder="Anything else we should know?"
+                    value={specialInstructions}
+                    onChange={(e) => setSpecialInstructions(e.target.value)}
+                  />
+                </Field>
               </div>
             </Fieldset>
 
