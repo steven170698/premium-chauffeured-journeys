@@ -168,6 +168,47 @@ export const requestBooking = createServerFn({ method: "POST" })
         return { error: error?.message ?? "Could not save your booking." };
       }
 
+      // Notifications — best-effort only. Must never block or fail the booking
+      // (Prompt 2: an email failure does not cancel or delete a booking).
+      try {
+        const { sendRendered, adminAlertRecipients } = await import("@/lib/email.server");
+        const { bookingReceivedEmail, newBookingAlertEmail } = await import(
+          "@/lib/email-templates"
+        );
+        const emailData = {
+          bookingId: booking.id,
+          reservationNumber: booking.reservation_number,
+          customerName: data.fullName,
+          customerEmail: data.email,
+          customerPhone: data.phone,
+          pickupAddress: data.pickup.address,
+          destinationAddress: data.destination.address,
+          extraStops: data.extraStop ?? null,
+          pickupAt: pickupAt.toISOString(),
+          passengers: data.passengers,
+          estimatedFare: quote.total,
+          distanceMiles: quote.distanceMiles,
+          durationMinutes: quote.durationMinutes,
+          specialInstructions: data.specialInstructions ?? null,
+        };
+        await Promise.allSettled([
+          sendRendered(data.email, bookingReceivedEmail(emailData), {
+            eventType: "booking_received",
+            bookingId: booking.id,
+            userId,
+          }),
+          sendRendered(adminAlertRecipients(), newBookingAlertEmail(emailData), {
+            eventType: "new_booking_alert",
+            bookingId: booking.id,
+          }),
+        ]);
+      } catch (notifyErr) {
+        console.error(
+          "[booking] notification error (non-fatal):",
+          notifyErr instanceof Error ? notifyErr.message : notifyErr,
+        );
+      }
+
       return {
         bookingId: booking.id,
         reservationNumber: booking.reservation_number,
