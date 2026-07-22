@@ -268,6 +268,15 @@ export const updateBookingStatus = createServerFn({ method: "POST" })
       .update({ trip_status: data.status })
       .eq("id", data.bookingId);
     if (error) throw new Error(error.message);
+    // Notify the passenger when a trip step is set from the bookings list, the
+    // same as the driver dashboard does (email + in-app). Best-effort.
+    if (["driver_en_route", "driver_arrived", "picked_up", "completed"].includes(data.status)) {
+      const { notifyTripStep } = await import("./trip-notify.server");
+      await notifyTripStep(
+        data.bookingId,
+        data.status as "driver_en_route" | "driver_arrived" | "picked_up" | "completed",
+      );
+    }
     return { ok: true };
   });
 

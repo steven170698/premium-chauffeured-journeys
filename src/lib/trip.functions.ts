@@ -25,60 +25,8 @@ async function notifyTripStep(
   bookingId: string,
   step: "driver_en_route" | "driver_arrived" | "picked_up" | "completed",
 ) {
-  try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: b } = await supabaseAdmin
-      .from("bookings")
-      .select(
-        "id, reservation_number, full_name, email, user_id, pickup_address, destination_address, pickup_at, passengers, amount_paid",
-      )
-      .eq("id", bookingId)
-      .maybeSingle();
-    if (!b) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const booking = b as any;
-    const { sendRendered } = await import("@/lib/email.server");
-    const { tripUpdateEmail } = await import("@/lib/email-templates");
-    const { createNotification } = await import("@/lib/notifications.server");
-    const titles: Record<string, string> = {
-      driver_en_route: "Your driver is on the way",
-      driver_arrived: "Your driver has arrived",
-      picked_up: "You're on your way",
-      completed: "Trip complete — thank you",
-    };
-    await Promise.allSettled([
-      booking.email
-        ? sendRendered(
-            booking.email,
-            tripUpdateEmail(
-              {
-                bookingId: booking.id,
-                reservationNumber: booking.reservation_number,
-                customerName: booking.full_name,
-                pickupAddress: booking.pickup_address,
-                destinationAddress: booking.destination_address,
-                pickupAt: booking.pickup_at,
-                passengers: booking.passengers,
-                amountPaid: booking.amount_paid,
-              },
-              step,
-            ),
-            { eventType: `trip_${step}`, bookingId: booking.id, userId: booking.user_id },
-          )
-        : Promise.resolve(),
-      createNotification({
-        userId: booking.user_id,
-        audience: "customer",
-        bookingId: booking.id,
-        type: `trip_${step}`,
-        title: titles[step],
-        body: `${booking.reservation_number}: ${titles[step].toLowerCase()}.`,
-        link: `/booking/success?booking_id=${booking.id}`,
-      }),
-    ]);
-  } catch (e) {
-    console.error(`[trip] step notify (${step}) non-fatal:`, e instanceof Error ? e.message : e);
-  }
+  const { notifyTripStep: notify } = await import("./trip-notify.server");
+  await notify(bookingId, step);
 }
 
 /**
