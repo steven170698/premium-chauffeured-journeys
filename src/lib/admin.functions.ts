@@ -161,6 +161,18 @@ export const updateAdminSettings = createServerFn({ method: "POST" })
         airport_surcharge: z.number().min(0).optional(),
         stop_fee: z.number().min(0).optional(),
         deposit_percentage: z.number().min(0).max(100).optional(),
+        // Prompt 3 pricing knobs
+        minimum_fare: z.number().min(0).optional(),
+        night_surcharge_pct: z.number().min(0).max(500).optional(),
+        night_start_hour: z.number().int().min(0).max(23).optional(),
+        night_end_hour: z.number().int().min(0).max(23).optional(),
+        weekend_surcharge_pct: z.number().min(0).max(500).optional(),
+        holiday_surcharge_pct: z.number().min(0).max(500).optional(),
+        hourly_rate: z.number().min(0).optional(),
+        minimum_hourly_hours: z.number().int().min(1).max(24).optional(),
+        meet_greet_fee: z.number().min(0).optional(),
+        child_seat_fee: z.number().min(0).optional(),
+        surcharge_stacking: z.enum(["stack", "highest"]).optional(),
         require_approval: z.boolean().optional(),
         approval_deadline_minutes: z.number().int().min(0).optional(),
         auto_decline_on_timeout: z.boolean().optional(),
@@ -179,6 +191,95 @@ export const updateAdminSettings = createServerFn({ method: "POST" })
       .from("admin_settings")
       .update(data as never)
       .eq("id", 1);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** All pricing holidays for the admin surcharge table (active + inactive). */
+export const listPricingHolidays = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("pricing_holidays")
+      .select("id, name, holiday_date, surcharge_pct, is_active, notes")
+      .order("holiday_date", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Array<{
+      id: string;
+      name: string;
+      holiday_date: string;
+      surcharge_pct: number;
+      is_active: boolean;
+      notes: string | null;
+    }>;
+  });
+
+/** Add a pricing holiday. */
+export const addPricingHoliday = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        name: z.string().trim().min(1).max(120),
+        holiday_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
+        surcharge_pct: z.number().min(0).max(500),
+        is_active: z.boolean().optional().default(true),
+        notes: z.string().trim().max(500).optional().nullable(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("pricing_holidays")
+      .insert(data as never);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Update a pricing holiday (edit fields or toggle active). */
+export const updatePricingHoliday = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        name: z.string().trim().min(1).max(120).optional(),
+        holiday_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        surcharge_pct: z.number().min(0).max(500).optional(),
+        is_active: z.boolean().optional(),
+        notes: z.string().trim().max(500).optional().nullable(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { id, ...patch } = data;
+    const { error } = await supabaseAdmin
+      .from("pricing_holidays")
+      .update(patch as never)
+      .eq("id", id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Delete a pricing holiday. */
+export const deletePricingHoliday = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("pricing_holidays")
+      .delete()
+      .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
