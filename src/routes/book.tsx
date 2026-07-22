@@ -305,7 +305,7 @@ function BookPage() {
                     placeholder="Start typing your pickup address…"
                     required
                   />
-                  <Hint>Address search by Geoapify · OpenStreetMap · biased to NY / NJ.</Hint>
+                  <Hint>Powered by Google Maps · biased to NY / NJ.</Hint>
                 </Field>
                 <Field
                   label="Destination Address"

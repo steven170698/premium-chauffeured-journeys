@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   placeAutocomplete,
+  placeDetails,
   type PlaceSuggestion,
-  type SelectedPlace,
 } from "@/lib/geo.functions";
+import type { SelectedPlace } from "@/lib/geo.functions";
 
 type Props = {
   value: string;
@@ -31,6 +32,7 @@ export function PlaceAutocomplete({
   const debounceRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const run = useServerFn(placeAutocomplete);
+  const resolve = useServerFn(placeDetails);
 
   useEffect(() => {
     function onClickAway(e: MouseEvent) {
@@ -62,18 +64,24 @@ export function PlaceAutocomplete({
     }
   }
 
-  function pickSuggestion(s: PlaceSuggestion) {
-    const selected: SelectedPlace = {
-      placeId: s.placeId,
-      address: s.address,
-      lat: s.lat,
-      lng: s.lng,
-      isAirport: s.isAirport,
-    };
-    onChange(selected.address);
-    onSelect(selected);
+  async function pickSuggestion(s: PlaceSuggestion) {
+    const label = s.address || [s.primary, s.secondary].filter(Boolean).join(", ");
+    onChange(label);
     setSuggestions([]);
     setOpen(false);
+    try {
+      // Google autocomplete has no coordinates — resolve them via place details.
+      const place = await resolve({ data: { placeId: s.placeId } });
+      if (place) {
+        onChange(place.address || label);
+        onSelect(place);
+      } else {
+        onSelect(null);
+      }
+    } catch (e) {
+      console.error("place details failed", e);
+      onSelect(null);
+    }
   }
 
   return (

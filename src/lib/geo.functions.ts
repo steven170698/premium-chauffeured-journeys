@@ -10,79 +10,107 @@ export type SelectedPlace = {
   isAirport: boolean;
 };
 
-/** An autocomplete suggestion returned to the client. */
+/** An autocomplete suggestion. Google returns no coordinates here — they are
+ *  resolved with placeDetails() when the customer picks a suggestion. */
 export type PlaceSuggestion = {
   placeId: string;
   primary: string;
   secondary: string;
   address: string;
-  lat: number;
-  lng: number;
-  isAirport: boolean;
 };
 
-// NY / NJ proximity bias so local addresses surface first.
-const BIAS_LON = -74.0;
+// NY / NJ bias so local addresses surface first.
 const BIAS_LAT = 40.73;
+const BIAS_LON = -74.0;
 
 /**
- * Server-proxied address autocomplete (Geoapify). Keeps the API key server-side
- * (Lovable secret GEOAPIFY_API_KEY) so nothing is exposed in the browser and it
- * works on any domain. Best-effort: returns [] on any failure so the booking UI
- * degrades gracefully instead of throwing.
+ * Server-proxied Google Places (New) autocomplete. Keeps the API key server-side
+ * (Lovable secret GOOGLE_MAPS_API_KEY) so nothing is exposed in the browser and
+ * it works on any domain. Best-effort: returns [] on any failure so the booking
+ * UI degrades gracefully instead of throwing.
  */
 export const placeAutocomplete = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) =>
     z.object({ query: z.string().trim().min(1).max(200) }).parse(data),
   )
   .handler(async ({ data }): Promise<PlaceSuggestion[]> => {
-    const key = process.env.GEOAPIFY_API_KEY;
+    const key = process.env.GOOGLE_MAPS_API_KEY;
     if (!key) return [];
     try {
-      const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
-      url.searchParams.set("text", data.query);
-      url.searchParams.set("format", "json");
-      url.searchParams.set("filter", "countrycode:us");
-      url.searchParams.set("bias", `proximity:${BIAS_LON},${BIAS_LAT}`);
-      url.searchParams.set("limit", "6");
-      url.searchParams.set("apiKey", key);
-
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key },
+        body: JSON.stringify({
+          input: data.query,
+          includedRegionCodes: ["us"],
+          locationBias: {
+            circle: {
+              center: { latitude: BIAS_LAT, longitude: BIAS_LON },
+              radius: 50000,
+            },
+          },
+        }),
+      });
       if (!res.ok) return [];
       const json = (await res.json()) as {
-        results?: Array<{
-          formatted?: string;
-          address_line1?: string;
-          address_line2?: string;
-          lat?: number;
-          lon?: number;
-          place_id?: string;
-          result_type?: string;
-          category?: string;
-          name?: string;
+        suggestions?: Array<{
+          placePrediction?: {
+            placeId?: string;
+            text?: { text?: string };
+            structuredFormat?: {
+              mainText?: { text?: string };
+              secondaryText?: { text?: string };
+            };
+          };
         }>;
       };
-
-      return (json.results ?? [])
-        .filter(
-          (r) => typeof r.lat === "number" && typeof r.lon === "number" && !!r.place_id,
-        )
-        .map((r) => {
-          const primary = r.address_line1 || r.name || r.formatted || "";
-          const secondary = r.address_line2 || "";
-          const hay = `${r.formatted ?? ""} ${r.category ?? ""} ${r.result_type ?? ""}`.toLowerCase();
-          const isAirport = hay.includes("airport");
-          return {
-            placeId: r.place_id as string,
-            primary,
-            secondary,
-            address: r.formatted || [primary, secondary].filter(Boolean).join(", "),
-            lat: r.lat as number,
-            lng: r.lon as number,
-            isAirport,
-          } satisfies PlaceSuggestion;
-        });
+      return (json.suggestions ?? [])
+        .map((s) => s.placePrediction)
+        .filter((p): p is NonNullable<typeof p> => !!p && !!p.placeId)
+        .map((p) => ({
+          placeId: p.placeId as string,
+          primary: p.structuredFormat?.mainText?.text || p.text?.text || "",
+          secondary: p.structuredFormat?.secondaryText?.text || "",
+          address: p.text?.text || "",
+        }));
     } catch {
       return [];
+    }
+  });
+
+/**
+ * Resolve a placeId to coordinates + a formatted address (Google Place Details
+ * New). Called when the customer selects a suggestion. Returns null on failure.
+ */
+export const placeDetails = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z.object({ placeId: z.string().trim().min(1).max(400) }).parse(data),
+  )
+  .handler(async ({ data }): Promise<SelectedPlace | null> => {
+    const key = process.env.GOOGLE_MAPS_API_KEY;
+    if (!key) return null;
+    try {
+      const url =
+        `https://places.googleapis.com/v1/places/${encodeURIComponent(data.placeId)}` +
+        `?fields=location,formattedAddress,types`;
+      const res = await fetch(url, { headers: { "X-Goog-Api-Key": key } });
+      if (!res.ok) return null;
+      const json = (await res.json()) as {
+        location?: { latitude?: number; longitude?: number };
+        formattedAddress?: string;
+        types?: string[];
+      };
+      const lat = json.location?.latitude;
+      const lng = json.location?.longitude;
+      if (typeof lat !== "number" || typeof lng !== "number") return null;
+      return {
+        placeId: data.placeId,
+        address: json.formattedAddress || "",
+        lat,
+        lng,
+        isAirport: (json.types ?? []).includes("airport"),
+      };
+    } catch {
+      return null;
     }
   });
