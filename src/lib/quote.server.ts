@@ -104,46 +104,17 @@ export async function computeQuoteInternal(input: {
   // from actuals at trip end.
   const tollsEstimate = 0;
 
-  const { createClient } = await import("@supabase/supabase-js");
-  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-    global: {
-      fetch: (input, init) => {
-        const h = new Headers(init?.headers);
-        const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
-        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-          h.delete("Authorization");
-        }
-        h.set("apikey", key);
-        return fetch(input, { ...init, headers: h });
-      },
-    },
-  });
-
-  const { data: settings, error } = await supabase
-    .from("public_pricing" as never)
-    .select(
-      "base_fare, per_mile_rate, per_minute_rate, booking_fee, airport_surcharge, stop_fee, minimum_fare, night_surcharge_pct, night_start_hour, night_end_hour, weekend_surcharge_pct, holiday_surcharge_pct, surcharge_stacking, hourly_rate, minimum_hourly_hours, meet_greet_fee, child_seat_fee",
-    )
-    .maybeSingle<{
-      base_fare: number;
-      per_mile_rate: number;
-      per_minute_rate: number;
-      booking_fee: number;
-      airport_surcharge: number;
-      stop_fee: number;
-      minimum_fare: number | null;
-      night_surcharge_pct: number | null;
-      night_start_hour: number | null;
-      night_end_hour: number | null;
-      weekend_surcharge_pct: number | null;
-      holiday_surcharge_pct: number | null;
-      surcharge_stacking: string | null;
-      hourly_rate: number | null;
-      minimum_hourly_hours: number | null;
-      meet_greet_fee: number | null;
-      child_seat_fee: number | null;
-    }>();
+  // Pricing is read server-side with the service-role client. `public_pricing`
+  // is a security_invoker view and anon has no SELECT on the underlying
+  // admin_settings, so an anon read is denied. This quote always runs
+  // server-side, so read the source table directly with elevated rights — only
+  // the computed quote is ever returned to the caller.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: settings, error } = await supabaseAdmin
+    .from("admin_settings")
+    .select("*")
+    .eq("id", 1)
+    .maybeSingle();
 
   if (error || !settings) throw new Error("Pricing is not configured yet.");
 
@@ -197,12 +168,12 @@ export async function computeQuoteInternal(input: {
 
       // Holiday lookup — best-effort; a failure never breaks the quote.
       try {
-        const { data: holiday } = await supabase
-          .from("pricing_holidays" as never)
+        const { data: holiday } = await supabaseAdmin
+          .from("pricing_holidays")
           .select("surcharge_pct")
           .eq("holiday_date", dateStr)
           .eq("is_active", true)
-          .maybeSingle<{ surcharge_pct: number }>();
+          .maybeSingle();
         if (holiday) {
           pcts.push(Number(holiday.surcharge_pct ?? settings.holiday_surcharge_pct ?? 0));
         }
