@@ -895,14 +895,15 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
           acc: pos.coords.accuracy,
         };
         setLastFix(fix);
-        if (status === "picked_up") {
-          const now = Date.now();
-          if (now - lastPostRef.current > 15000) {
-            lastPostRef.current = now;
-            void logFn({
-              data: { bookingId: ride.id, lat: fix.lat, lng: fix.lng, accuracy: fix.acc },
-            }).catch(() => {});
-          }
+        // Broadcast the driver's location the whole time the trip is active
+        // (en route, arrived, picked up) so the passenger's live map updates
+        // from the moment "En route" is pressed. Throttled to ~10s.
+        const now = Date.now();
+        if (now - lastPostRef.current > 10000) {
+          lastPostRef.current = now;
+          void logFn({
+            data: { bookingId: ride.id, lat: fix.lat, lng: fix.lng, accuracy: fix.acc },
+          }).catch(() => {});
         }
       },
       () => {},

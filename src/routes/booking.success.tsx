@@ -4,9 +4,12 @@ import { useState } from "react";
 import { CheckCircle2, ArrowRight, Loader2, Clock, Info, CreditCard, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
-import { getBookingStatus } from "@/lib/booking-status.functions";
+import { getBookingStatus, getDriverLocation } from "@/lib/booking-status.functions";
 import { startGuestBookingPayment } from "@/lib/payment.functions";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
+import { LiveMap } from "@/components/LiveMap";
+
+const ACTIVE_TRIP = ["driver_en_route", "driver_arrived", "picked_up"];
 
 export const Route = createFileRoute("/booking/success")({
   head: () => ({
@@ -35,11 +38,14 @@ function SuccessPage() {
       if (!booking_id) return null;
       return getBookingStatus({ data: { bookingId: booking_id } });
     },
-    // Poll only if we came back from Stripe (waiting on webhook).
+    // Poll while waiting on the Stripe webhook, and while the trip is live so
+    // the status (and map) keep up as the driver progresses.
     refetchInterval: (q) => {
-      if (!cameFromStripe) return false;
       const d = q.state.data as { booking?: { trip_status?: string } } | null | undefined;
-      if (d?.booking?.trip_status === "confirmed") return false;
+      const s = d?.booking?.trip_status;
+      if (s && ACTIVE_TRIP.includes(s)) return 10000;
+      if (!cameFromStripe) return false;
+      if (s === "confirmed") return false;
       return 1500;
     },
     refetchIntervalInBackground: false,
@@ -47,6 +53,25 @@ function SuccessPage() {
 
   const booking = data && "booking" in data && data.booking ? data.booking : null;
   const status = booking?.trip_status;
+  const tripLive = Boolean(status && ACTIVE_TRIP.includes(status));
+  const pickupLat = booking ? Number(booking.pickup_lat) : NaN;
+  const pickupLng = booking ? Number(booking.pickup_lng) : NaN;
+  const hasPickupCoords = Number.isFinite(pickupLat) && Number.isFinite(pickupLng);
+
+  const { data: driverLoc } = useQuery({
+    enabled: Boolean(booking_id) && tripLive,
+    queryKey: ["driver-location", booking_id],
+    queryFn: async () => {
+      if (!booking_id) return null;
+      return getDriverLocation({ data: { bookingId: booking_id } });
+    },
+    refetchInterval: tripLive ? 10000 : false,
+    refetchIntervalInBackground: false,
+  });
+  const driver =
+    driverLoc && "location" in driverLoc && driverLoc.location
+      ? { lat: driverLoc.location.lat, lng: driverLoc.location.lng }
+      : null;
 
   let title = "Request received";
   let body =
@@ -67,6 +92,18 @@ function SuccessPage() {
     title = "Approved — pay to confirm";
     body =
       "Your ride has been approved. Pay securely below to lock in your reservation — no account or login needed.";
+  } else if (status === "driver_en_route") {
+    icon = <CheckCircle2 className="h-8 w-8" />;
+    title = "Your driver is on the way";
+    body = "Track your chauffeur's location on the live map below. Please be ready for pickup.";
+  } else if (status === "driver_arrived") {
+    icon = <CheckCircle2 className="h-8 w-8" />;
+    title = "Your driver has arrived";
+    body = "Your chauffeur is at the pickup location and waiting for you.";
+  } else if (status === "picked_up") {
+    icon = <CheckCircle2 className="h-8 w-8" />;
+    title = "You're on your way";
+    body = "Enjoy your ride — you can follow the route on the live map below.";
   } else if (status === "declined") {
     title = "Request declined";
     body = "Unfortunately the driver isn't able to take this ride. No charge was made.";
@@ -104,6 +141,23 @@ function SuccessPage() {
           total={Number(booking.total)}
           deadlineAt={booking.payment_deadline_at}
         />
+      )}
+      {tripLive && hasPickupCoords && (
+        <div className="mx-auto mt-8 w-full max-w-lg text-left">
+          <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.28em] text-gold">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-gold" />
+            </span>
+            Live driver location
+          </div>
+          <LiveMap pickup={{ lat: pickupLat, lng: pickupLng }} driver={driver} />
+          <p className="mt-2 text-center text-[11px] text-muted-foreground">
+            {driver
+              ? "Updating every ~10 seconds."
+              : "Waiting for your driver's location…"}
+          </p>
+        </div>
       )}
       <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <Link
