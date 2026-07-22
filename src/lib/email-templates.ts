@@ -61,7 +61,11 @@ function esc(s: string | null | undefined): string {
 }
 
 function manageUrl(bookingId?: string): string {
-  return bookingId ? `${BRAND.siteUrl}/dashboard?booking=${encodeURIComponent(bookingId)}` : `${BRAND.siteUrl}/dashboard`;
+  // Public, no-login ride page so guests can view their reservation straight
+  // from the email without being asked to sign in.
+  return bookingId
+    ? `${BRAND.siteUrl}/booking/success?booking_id=${encodeURIComponent(bookingId)}`
+    : `${BRAND.siteUrl}/`;
 }
 
 /** A single label/value row used inside the details panel. */
