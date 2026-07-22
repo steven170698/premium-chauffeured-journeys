@@ -67,6 +67,136 @@ export const getAdminStats = createServerFn({ method: "POST" })
     };
   });
 
+/** Extended overview KPIs used by the Admin dashboard home page. */
+export const getAdminOverview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.rpc("mark_abandoned_bookings" as never);
+
+    const now = new Date();
+    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay); endOfDay.setDate(endOfDay.getDate() + 1);
+    const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfWeek.getDate() - 6);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const startPrevWeek = new Date(startOfWeek); startPrevWeek.setDate(startPrevWeek.getDate() - 7);
+    const startPrevDay = new Date(startOfDay); startPrevDay.setDate(startPrevDay.getDate() - 1);
+
+    const { data: rev } = await supabaseAdmin
+      .from("revenue_records")
+      .select("amount, recorded_at");
+    const revList = (rev ?? []) as Array<{ amount: number; recorded_at: string }>;
+    const between = (from: Date, to: Date) =>
+      revList
+        .filter((r) => {
+          const t = new Date(r.recorded_at);
+          return t >= from && t < to;
+        })
+        .reduce((n, r) => n + Number(r.amount), 0);
+    const from = (d: Date) =>
+      revList.filter((r) => new Date(r.recorded_at) >= d).reduce((n, r) => n + Number(r.amount), 0);
+
+    const [
+      pending,
+      awaitingPayment,
+      activeTrips,
+      upcoming,
+      completed,
+      cancelledToday,
+      unreadSupport,
+      customers,
+    ] = await Promise.all([
+      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("trip_status", "pending_approval"),
+      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("trip_status", "awaiting_payment"),
+      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).in("trip_status", ["driver_en_route", "driver_arrived", "picked_up"]),
+      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("trip_status", "confirmed").gte("pickup_at", now.toISOString()),
+      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("trip_status", "completed"),
+      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).in("trip_status", ["canceled", "declined"]).gte("updated_at", startOfDay.toISOString()),
+      supabaseAdmin.from("support_requests" as never).select("id", { count: "exact", head: true }).eq("status" as never, "new" as never),
+      supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
+    ]);
+
+    return {
+      revenue: {
+        today: from(startOfDay),
+        week: from(startOfWeek),
+        month: from(startOfMonth),
+        allTime: revList.reduce((n, r) => n + Number(r.amount), 0),
+        prevDay: between(startPrevDay, startOfDay),
+        prevWeek: between(startPrevWeek, startOfWeek),
+        prevMonth: between(startPrevMonth, startOfMonth),
+      },
+      counts: {
+        pending: pending.count ?? 0,
+        awaitingPayment: awaitingPayment.count ?? 0,
+        activeTrips: activeTrips.count ?? 0,
+        upcoming: upcoming.count ?? 0,
+        completed: completed.count ?? 0,
+        cancelledToday: cancelledToday.count ?? 0,
+        unreadSupport: unreadSupport.count ?? 0,
+        totalCustomers: customers.count ?? 0,
+        totalRides: revList.length,
+      },
+    };
+  });
+
+/** Today's pickups + currently active trip for the operations panel. */
+export const listTodayOperations = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const now = new Date();
+    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay); endOfDay.setDate(endOfDay.getDate() + 1);
+
+    const { data: today } = await supabaseAdmin
+      .from("bookings")
+      .select("id, reservation_number, full_name, phone, pickup_address, destination_address, pickup_at, trip_status, payment_status, total")
+      .gte("pickup_at", startOfDay.toISOString())
+      .lt("pickup_at", endOfDay.toISOString())
+      .not("trip_status", "in", "(canceled,declined,payment_expired)")
+      .order("pickup_at", { ascending: true });
+
+    return {
+      today: today ?? [],
+    };
+  });
+
+/** Global admin search across bookings + customers. */
+export const globalAdminSearch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ q: z.string().trim().min(1).max(120) }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const term = `%${data.q}%`;
+
+    const [bookings, customers] = await Promise.all([
+      supabaseAdmin
+        .from("bookings")
+        .select("id, reservation_number, full_name, email, pickup_at, trip_status, total")
+        .or(`reservation_number.ilike.${term},full_name.ilike.${term},email.ilike.${term},phone.ilike.${term}`)
+        .order("pickup_at", { ascending: false })
+        .limit(15),
+      supabaseAdmin
+        .from("profiles")
+        .select("id, full_name, email, phone")
+        .or(`full_name.ilike.${term},email.ilike.${term},phone.ilike.${term}`)
+        .limit(10),
+    ]);
+
+    return {
+      bookings: bookings.data ?? [],
+      customers: customers.data ?? [],
+    };
+  });
+
 const TRIP_STATUSES = [
   "pending_approval",
   "confirmed",

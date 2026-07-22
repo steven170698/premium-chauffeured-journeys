@@ -1,16 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 import { toast } from "sonner";
 import { listAdminBookings, updateBookingStatus } from "@/lib/admin.functions";
 import { approveBooking, declineBooking } from "@/lib/payment.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { MapPin, Search } from "lucide-react";
 
+const bookingsSearchSchema = z.object({
+  q: z.string().optional(),
+  status: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
   head: () => ({ meta: [{ title: "Admin Bookings — Stevie Services" }] }),
+  validateSearch: (s) => bookingsSearchSchema.parse(s),
   component: AdminBookings,
 });
+
 
 type StatusFilter =
   | "all"
@@ -40,8 +48,33 @@ const NEXT_ACTIONS: Record<
 
 function AdminBookings() {
   const qc = useQueryClient();
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [search, setSearch] = useState("");
+  const navigate = useNavigate({ from: Route.fullPath });
+  const urlSearch = Route.useSearch();
+  const [status, setStatus] = useState<StatusFilter>(
+    ((urlSearch.status as StatusFilter) ?? "all") || "all",
+  );
+  const [search, setSearch] = useState(urlSearch.q ?? "");
+
+  // Sync URL → local state when navigation changes params (e.g. header search click).
+  useEffect(() => {
+    setStatus(((urlSearch.status as StatusFilter) ?? "all") || "all");
+    setSearch(urlSearch.q ?? "");
+  }, [urlSearch.q, urlSearch.status]);
+
+  // Debounce URL updates so filter chips + typing feel snappy.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      navigate({
+        search: {
+          q: search || undefined,
+          status: status === "all" ? undefined : status,
+        } as never,
+        replace: true,
+      });
+    }, 250);
+    return () => clearTimeout(id);
+  }, [search, status, navigate]);
+
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin-bookings", status, search],
