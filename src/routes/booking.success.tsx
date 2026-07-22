@@ -107,17 +107,11 @@ function SuccessPage() {
       )}
       <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
         <Link
-          to="/dashboard"
-          className="inline-flex items-center gap-2 rounded-full bg-gold-gradient px-6 py-3 text-sm font-semibold text-gold-foreground shadow-gold-glow"
-        >
-          View my rides
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-        <Link
           to="/"
-          className="rounded-full border border-border/60 px-6 py-3 text-sm text-foreground hover:border-gold/50"
+          className="inline-flex items-center gap-2 rounded-full border border-border/60 px-6 py-3 text-sm text-foreground hover:border-gold/50"
         >
           Back to home
+          <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
     </div>
