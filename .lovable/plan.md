@@ -1,67 +1,60 @@
-## Goal
+This is a very large scope — realistically 20+ new admin pages, a dozen new tables (drivers, vehicles, promo codes, corporate accounts, audit logs, email/SMS templates, service areas), new RLS, refund flows through Stripe, realtime, exports, analytics, and a role hierarchy (Owner/Dispatcher/Finance/etc.).
 
-Stabilize the existing Stevie Services LLC platform without rebuilding. Preserve Supabase, Stripe, Google Maps, custom domain, and all existing data/routes. Repair, don't replace.
+Rather than attempt all of that in one pass (which would break working features and burn a lot of credits on things you may not need soon), I want to ship this in focused, verifiable phases. Everything preserves your existing tables, routes, Stripe/Maps/Supabase setup, and the black/gold/white design system.
 
-## Scope of this prompt (foundation only)
+## Proposed phasing
 
-Deliberately excluded (reserved for later prompts, as you instructed): redesigning booking, pricing, payments, notifications, dashboards, SMS, email templates, invoices, refunds workflow beyond wiring.
+**Phase A — Admin shell + security hardening + Overview upgrade**
+- New sidebar layout (`_authenticated/admin/route.tsx`) with collapsible groups, mobile slide-out, top header with search box, notification bell (wired to existing `notifications` table), admin profile menu, sign-out.
+- Server-side role guard middleware (`requireAdmin`) applied to every admin server fn — not just route redirect. Adds defense-in-depth beyond the current `beforeLoad` check.
+- Expand Overview KPIs: today/week/month revenue with prior-period deltas, pending approvals, awaiting payment, active trips, completed, cancelled, unread support, refunds pending. Each card links to filtered list. Real data only.
+- "Today's Operations" panel: today's pickups sorted chronologically, active trip, delayed rides, payment issues.
+- Global search (reservation #, customer name/email/phone) in header.
 
-## 1. Audit pass (no code changes)
+**Phase B — Booking management depth**
+- Booking details page (`/admin/bookings/$id`) with full timeline, pricing breakdown, payment history, notifications sent, internal notes, audit history, route map.
+- Actions gated by status: approve, decline w/ reason, cancel, mark no-show, adjust quote (with reason → audit), resend payment link, add internal note.
+- Filters: date range, status, payment status, service type, search. Pagination.
+- Manual booking creation (`/admin/bookings/new`) reusing `PlaceAutocomplete` + `computeQuote` + existing `requestBooking` path; admin can auto-approve and send payment link in one flow.
 
-Inspect and report on:
-- Route inventory vs. required public pages (Home, About, Services, Airport, Hourly, FAQ, Contact, Book, Privacy, Terms, Cancellation/Refund).
-- Existing DB tables vs. required entities (profiles, bookings, trips, payments, refunds, invoices, reviews, coupons, loyalty, referrals, notifications, saved addresses, audit logs, admin_settings, user_roles, vehicles).
-- Duplicate/legacy modules (e.g. `checkout.functions.ts` legacy vs. `payment.functions.ts` request-first flow).
-- Role guard coverage on `/admin/*` and `/dashboard`.
-- Console errors, missing env vars, broken links.
+**Phase C — Customers + Reviews + Support + Notifications center**
+- `/admin/customers` list + detail (profile, booking history, payments, refunds, reviews, notes). Read-only on auth-sensitive fields (no password access).
+- `/admin/reviews` moderation (approve/hide, respond) — extend existing reviews route.
+- `/admin/support` inbox using existing `support_requests` table (statuses, assignment, reply, link to booking).
+- `/admin/notifications` center with mark-read/archive, filtered feed off existing `notifications` table.
+- Supabase Realtime subscriptions on bookings, payments, support_requests, reviews — single subscriber in the admin layout, invalidates React Query.
 
-Deliverable: audit summary in chat at the end.
+**Phase D — Payments + Refunds**
+- `/admin/payments` list backed by bookings + Stripe payment intent IDs already stored. Filters, export CSV.
+- `/admin/refunds`: refund workflow that calls Stripe refund API server-side, updates only after webhook confirms (extend existing `webhook.ts` to handle `charge.refunded`). Confirmation modals for full/large/post-trip refunds. Audit entry per refund.
 
-## 2. Repairs (code changes limited to stabilization)
+**Phase E — Pricing, Discounts, Holidays, Business Settings**
+- Wire `/admin/settings` to every field in `admin_settings` (base fare, per-mile, per-min, minimum fare, waiting, airport, hourly, stops, night/weekend/holiday surcharges, meet & greet, child seat, cancellation policy text, payment expiration, lead time, timezone, etc.). Confirmation on save + write to a new `pricing_history` audit table so historical booking prices stay untouched.
+- `/admin/holidays` CRUD on existing `pricing_holidays`.
+- `/admin/discounts` CRUD on existing `coupons` (activate/deactivate, usage limits, date limits, min booking amount).
 
-Create only what's missing; skip if present.
+**Phase F — Reports + Analytics + Audit log viewer**
+- `/admin/reports` with revenue, bookings, cancellations, refunds, discount usage, airport, hourly reports. Filters + CSV export.
+- `/admin/analytics` charts (revenue by day/week/month, bookings by status, top pickup areas, cancellation rate, avg booking value, payment success rate) via `recharts`.
+- `/admin/audit` viewer on existing `booking_audit_log` plus new admin action logging middleware. Read-only, non-deletable.
 
-**Public pages** — add stubs with real branded content, SEO head(), and footer links:
-- `/about`
-- `/services`
-- `/services/airport`
-- `/services/hourly`
-- `/faq`
-- `/privacy`
-- `/terms`
-- `/cancellation-policy`
+**Phase G (deferred — needs product decisions)**
+- Drivers / Vehicles / Corporate Accounts / Service Areas / Email & SMS template editor / expanded role hierarchy (Dispatcher/Finance/Read-Only). These need new tables + workflows and — since you operate as one driver + one CR-V today — they may not pay for themselves right now. I'd rather build them when you're actually hiring or onboarding a fleet.
 
-Do NOT touch `/`, `/book`, `/contact`, `/auth`, `/booking/success`, `/dashboard`, `/admin/*` beyond adding footer nav links to the new pages.
+## Database changes (only additive, no destructive edits)
+- New `pricing_history` table (snapshot per settings change: changed_by, changed_at, old_json, new_json, reason).
+- New `admin_action_log` table for non-booking audit events (role changes, pricing edits, refunds, template edits).
+- New `refund_requests` table (booking_id, amount, reason, stripe_refund_id, status, requested_by, processed_at) — refund state machine driven by webhook.
+- Extend `notifications` with `archived_at` if not present.
+- New `admin_notes` table on bookings and customers, or reuse existing `driver_notes`/booking `internal_notes` if already there — I'll check first.
+- No changes to bookings, payments, customers, drivers, vehicles historical data.
 
-**Guest fare display** — hide the per-mile / per-minute breakdown from unauthenticated users on `/book`, showing only the total estimate (per your rule "guests cannot see all detail of the fare"). Signed-in customers still see the itemized breakdown.
+All new tables ship with GRANTs + RLS scoped to admin role via `has_role`.
 
-**Role guard hardening** — verify `/admin` `beforeLoad` correctly redirects non-admins; add a small `useRole` helper if missing. No policy changes.
+## What I want to confirm before starting
 
-**Error/empty states** — add graceful fallbacks (already partially present) for:
-- Google Maps script load failure on `/book` and `/contact`
-- Fare quote failure
-- Booking submission failure
-Reuse existing toast + inline error patterns.
+1. **Start with Phase A only this turn?** It's the foundation (shell, real security, upgraded overview, global search, notification bell). I estimate ~6-8 new/modified files and one small migration. You'll be able to see and use it immediately, and each subsequent phase builds on it.
+2. **Phase G confirmation**: OK to defer drivers/vehicles/corporate/service-areas/template-editor/expanded-roles until you actually need them? Your current setup (one driver, one CR-V, you as sole admin) doesn't exercise them.
+3. **Refund policy default** (for Phase D): what percentage refunded for cancellations at >24h, 24-2h, <2h, no-show? I'll code it into `refund_requests` calculator.
 
-**Mobile polish on driver dashboard** — ensure action buttons (Approve, Decline, En Route, Arrived, Start, Complete) meet a 44px min tap target. CSS-only tweaks.
-
-**Footer** — add links to the new legal/info pages.
-
-## 3. Database
-
-No destructive changes. Only additive if a required table is missing after audit. Expected outcome based on current schema: **no migration needed**; report will confirm.
-
-## 4. Explicitly NOT doing this turn
-
-- No changes to auth flows, Stripe wiring, webhook, quote engine, trip tracker, reconciliation logic, or admin settings shape.
-- No new SMS / email provider setup.
-- No new roles table or RLS rewrites.
-- No visual redesign.
-
-## 5. Deliverable at end
-
-A summary covering: repaired, preserved, still incomplete, blocked-on-credentials, DB changes (expected: none), files touched.
-
----
-
-Approve to proceed, or tell me which sections to trim/expand.
+Reply with "go Phase A" (plus answers to 2 and 3 when you're ready) and I'll ship it.
