@@ -48,8 +48,33 @@ const NEXT_ACTIONS: Record<
 
 function AdminBookings() {
   const qc = useQueryClient();
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [search, setSearch] = useState("");
+  const navigate = useNavigate({ from: Route.fullPath });
+  const urlSearch = Route.useSearch();
+  const [status, setStatus] = useState<StatusFilter>(
+    ((urlSearch.status as StatusFilter) ?? "all") || "all",
+  );
+  const [search, setSearch] = useState(urlSearch.q ?? "");
+
+  // Sync URL → local state when navigation changes params (e.g. header search click).
+  useEffect(() => {
+    setStatus(((urlSearch.status as StatusFilter) ?? "all") || "all");
+    setSearch(urlSearch.q ?? "");
+  }, [urlSearch.q, urlSearch.status]);
+
+  // Debounce URL updates so filter chips + typing feel snappy.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      navigate({
+        search: {
+          q: search || undefined,
+          status: status === "all" ? undefined : status,
+        } as never,
+        replace: true,
+      });
+    }, 250);
+    return () => clearTimeout(id);
+  }, [search, status, navigate]);
+
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin-bookings", status, search],
