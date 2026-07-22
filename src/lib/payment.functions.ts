@@ -8,10 +8,16 @@ import {
 } from "./stripe.server";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
-  const { data } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
+  // Verify admin via the service-role client reading user_roles directly (the
+  // has_role() RPC path is unreliable and silently 403s admin actions like
+  // approve/decline).
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", context.userId)
+    .eq("role", "admin")
+    .maybeSingle();
   if (!data) throw new Error("Forbidden");
 }
 

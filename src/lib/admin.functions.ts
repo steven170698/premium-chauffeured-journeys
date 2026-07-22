@@ -3,10 +3,17 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
+  // Verify the admin role with the service-role client reading user_roles
+  // directly. The has_role() RPC path is unreliable — Lovable's security pass
+  // can revoke/relocate the function, which then silently 403s every admin
+  // action (bookings list, approve/decline, driver, etc.).
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", context.userId)
+    .eq("role", "admin")
+    .maybeSingle();
   if (error || !data) throw new Error("Forbidden");
 }
 
