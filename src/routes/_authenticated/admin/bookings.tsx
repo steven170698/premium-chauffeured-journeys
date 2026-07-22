@@ -1,16 +1,24 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { z } from "zod";
 import { toast } from "sonner";
 import { listAdminBookings, updateBookingStatus } from "@/lib/admin.functions";
 import { approveBooking, declineBooking } from "@/lib/payment.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { MapPin, Search } from "lucide-react";
 
+const bookingsSearchSchema = z.object({
+  q: z.string().optional(),
+  status: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/bookings")({
   head: () => ({ meta: [{ title: "Admin Bookings — Stevie Services" }] }),
+  validateSearch: (s) => bookingsSearchSchema.parse(s),
   component: AdminBookings,
 });
+
 
 type StatusFilter =
   | "all"
