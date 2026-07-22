@@ -112,10 +112,8 @@ export const approveBooking = createServerFn({ method: "POST" })
       if (booking.trip_status !== "pending_approval") {
         return { error: `Cannot approve booking in status "${booking.trip_status}".` };
       }
-      const settings = await loadSettings();
-      const paymentWindowMin = Number(settings?.payment_window_minutes ?? 30);
-      const paymentDeadline = new Date(Date.now() + paymentWindowMin * 60 * 1000);
-
+      // The payment link never expires — no payment deadline is set, so the
+      // customer can pay whenever they're ready.
       const session = await createSessionForBooking(
         booking as Parameters<typeof createSessionForBooking>[0],
         data.environment as StripeEnv,
@@ -129,7 +127,7 @@ export const approveBooking = createServerFn({ method: "POST" })
           trip_status: "awaiting_payment",
           approved_at: new Date().toISOString(),
           approved_by: context.userId,
-          payment_deadline_at: paymentDeadline.toISOString(),
+          payment_deadline_at: null,
           stripe_session_id: session.id,
         })
         .eq("id", data.bookingId)
@@ -156,7 +154,7 @@ export const approveBooking = createServerFn({ method: "POST" })
               pickupAt: booking.pickup_at,
               approvedFare: Number(booking.total),
               paymentUrl: payUrl,
-              paymentDeadlineAt: paymentDeadline.toISOString(),
+              paymentDeadlineAt: null,
             }),
             { eventType: "booking_approved", bookingId: booking.id, userId: booking.user_id },
           ),
@@ -176,7 +174,7 @@ export const approveBooking = createServerFn({ method: "POST" })
 
       return {
         ok: true,
-        paymentDeadlineAt: paymentDeadline.toISOString(),
+        paymentDeadlineAt: null,
         clientSecret: session.client_secret ?? "",
       };
     } catch (e) {
@@ -277,12 +275,6 @@ export const startBookingPayment = createServerFn({ method: "POST" })
       if (booking.trip_status !== "awaiting_payment") {
         return { error: "This booking is not awaiting payment." };
       }
-      if (
-        booking.payment_deadline_at &&
-        new Date(booking.payment_deadline_at) < new Date()
-      ) {
-        return { error: "The payment window has expired. Please request a new ride." };
-      }
 
       const session = await createSessionForBooking(
         booking as Parameters<typeof createSessionForBooking>[0],
@@ -323,12 +315,6 @@ export const startGuestBookingPayment = createServerFn({ method: "POST" })
       const booking = await loadBooking(data.bookingId);
       if (booking.trip_status !== "awaiting_payment") {
         return { error: "This booking is not awaiting payment." };
-      }
-      if (
-        booking.payment_deadline_at &&
-        new Date(booking.payment_deadline_at) < new Date()
-      ) {
-        return { error: "The payment window has expired. Please request a new ride." };
       }
       const session = await createSessionForBooking(
         booking as Parameters<typeof createSessionForBooking>[0],

@@ -12,7 +12,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
-import { LogOut, LayoutDashboard } from "lucide-react";
+import { LogOut, LayoutDashboard, LogIn } from "lucide-react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -160,7 +160,7 @@ function SiteHeader({ user }: { user: User | null }) {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Link to="/dashboard" className="hidden md:inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:bg-muted">
+              <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:bg-muted">
                 <LayoutDashboard className="h-3 w-3" /> Dashboard
               </Link>
               <button onClick={handleSignOut} title="Sign out" className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-2 text-xs font-semibold hover:bg-muted">
@@ -168,8 +168,8 @@ function SiteHeader({ user }: { user: User | null }) {
               </button>
             </>
           ) : (
-            <Link to="/auth" className="hidden md:inline-flex rounded-full border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:bg-muted">
-              Sign in
+            <Link to="/auth" className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-secondary px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted">
+              <LogIn className="h-3 w-3" /> Log in
             </Link>
           )}
           <Link
