@@ -24,14 +24,14 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminLayout,
 });
 
-const NAV = [
+const NAV: Array<{ to: string; icon: typeof LayoutDashboard; label: string; exact?: boolean }> = [
   { to: "/admin", icon: LayoutDashboard, label: "Overview", exact: true },
   { to: "/admin/driver", icon: Car, label: "Driver" },
   { to: "/admin/bookings", icon: ClipboardList, label: "Bookings" },
   { to: "/admin/calendar", icon: CalendarDays, label: "Calendar" },
   { to: "/admin/reviews", icon: Star, label: "Reviews" },
   { to: "/admin/settings", icon: Settings2, label: "Settings" },
-] as const;
+];
 
 function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -77,7 +77,7 @@ function TopBar({ onMenu, mobileOpen }: { onMenu: () => void; mobileOpen: boolea
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
