@@ -79,7 +79,9 @@ function BookPage() {
 
   // Submit
   const [submitting, setSubmitting] = useState(false);
-  const [fareAccepted, setFareAccepted] = useState(false);
+  // Fare-adjustment disclaimer/checkbox was removed from the form; acceptance
+  // is implied by submitting the request.
+  const [fareAccepted] = useState(true);
   // Stable per-form key so double-clicks / refreshes / retries never create
   // duplicate bookings (enforced server-side + by a unique index).
   const [idempotencyKey] = useState(() => crypto.randomUUID());
@@ -385,30 +387,6 @@ function BookPage() {
             </Fieldset>
 
 
-
-            <div className="space-y-3 rounded-2xl border border-gold/20 bg-gold/5 p-4 text-xs leading-relaxed text-muted-foreground">
-              <div className="flex items-start gap-3">
-                <Info className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-                <p>
-                  This is an <span className="font-semibold text-foreground">Estimated Fare</span>. The final fare may
-                  change based on actual mileage, actual trip duration, waiting time, tolls, parking, additional stops,
-                  destination changes, and other customer-requested changes.
-                </p>
-              </div>
-              <label className="flex items-start gap-3 rounded-xl border border-gold/30 bg-background/60 p-3 text-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={fareAccepted}
-                  onChange={(e) => setFareAccepted(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 accent-[var(--gold)]"
-                  required
-                />
-                <span className="text-xs">
-                  I accept the fare-adjustment policy above and authorize Stevie Services to bill the final fare after
-                  my ride is completed.
-                </span>
-              </label>
-            </div>
 
           </form>
 
