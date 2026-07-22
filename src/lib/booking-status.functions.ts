@@ -16,7 +16,7 @@ export const getBookingStatus = createServerFn({ method: "POST" })
     const { data: booking, error } = await supabaseAdmin
       .from("bookings")
       .select(
-        "id, reservation_number, trip_status, payment_status, total, pickup_at, pickup_address, destination_address",
+        "id, reservation_number, trip_status, payment_status, total, payment_deadline_at, pickup_at, pickup_address, destination_address",
       )
       .eq("id", data.bookingId)
       .maybeSingle();

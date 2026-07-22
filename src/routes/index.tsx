@@ -115,12 +115,6 @@ function Hero() {
             Book a Ride
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
-          <Link
-            to="/book"
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-secondary/60 px-7 py-4 text-sm font-semibold text-foreground backdrop-blur hover:bg-secondary"
-          >
-            Get a Quote
-          </Link>
         </div>
 
         <div className="mt-14 grid grid-cols-2 gap-6 text-left sm:grid-cols-4 animate-fade-up">

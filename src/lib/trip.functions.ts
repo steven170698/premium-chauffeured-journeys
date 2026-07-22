@@ -16,6 +16,72 @@ async function assertAdmin(context: { supabase: any; userId: string }) {
 }
 
 /**
+ * Notify the passenger of a trip-status change (email + in-app). Best-effort —
+ * never throws, so a notification failure can't break the driver's flow.
+ * Email uses the passenger's booking email, so it reaches guests who never
+ * created an account; the link is the public, no-login ride page.
+ */
+async function notifyTripStep(
+  bookingId: string,
+  step: "driver_en_route" | "driver_arrived" | "picked_up" | "completed",
+) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: b } = await supabaseAdmin
+      .from("bookings")
+      .select(
+        "id, reservation_number, full_name, email, user_id, pickup_address, destination_address, pickup_at, passengers, amount_paid",
+      )
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (!b) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const booking = b as any;
+    const { sendRendered } = await import("@/lib/email.server");
+    const { tripUpdateEmail } = await import("@/lib/email-templates");
+    const { createNotification } = await import("@/lib/notifications.server");
+    const titles: Record<string, string> = {
+      driver_en_route: "Your driver is on the way",
+      driver_arrived: "Your driver has arrived",
+      picked_up: "You're on your way",
+      completed: "Trip complete — thank you",
+    };
+    await Promise.allSettled([
+      booking.email
+        ? sendRendered(
+            booking.email,
+            tripUpdateEmail(
+              {
+                bookingId: booking.id,
+                reservationNumber: booking.reservation_number,
+                customerName: booking.full_name,
+                pickupAddress: booking.pickup_address,
+                destinationAddress: booking.destination_address,
+                pickupAt: booking.pickup_at,
+                passengers: booking.passengers,
+                amountPaid: booking.amount_paid,
+              },
+              step,
+            ),
+            { eventType: `trip_${step}`, bookingId: booking.id, userId: booking.user_id },
+          )
+        : Promise.resolve(),
+      createNotification({
+        userId: booking.user_id,
+        audience: "customer",
+        bookingId: booking.id,
+        type: `trip_${step}`,
+        title: titles[step],
+        body: `${booking.reservation_number}: ${titles[step].toLowerCase()}.`,
+        link: `/booking/success?booking_id=${booking.id}`,
+      }),
+    ]);
+  } catch (e) {
+    console.error(`[trip] step notify (${step}) non-fatal:`, e instanceof Error ? e.message : e);
+  }
+}
+
+/**
  * Begin driving to pickup. confirmed → driver_en_route.
  * Optional starting GPS point.
  */
@@ -47,6 +113,7 @@ export const startTrip = createServerFn({ method: "POST" })
         trip_status: "driver_en_route",
       } as never);
     }
+    await notifyTripStep(data.bookingId, "driver_en_route");
     return { ok: true };
   });
 
@@ -69,6 +136,7 @@ export const markArrivedAtPickup = createServerFn({ method: "POST" })
       .eq("id", data.bookingId)
       .eq("trip_status", "driver_en_route");
     if (error) throw new Error(error.message);
+    await notifyTripStep(data.bookingId, "driver_arrived");
     return { ok: true };
   });
 
@@ -131,6 +199,7 @@ export const markPickedUp = createServerFn({ method: "POST" })
         trip_status: "picked_up",
       } as never);
     }
+    await notifyTripStep(data.bookingId, "picked_up");
     return { ok: true, billableWaitingMinutes: Math.round(billable) };
   });
 
@@ -323,6 +392,8 @@ export const endTrip = createServerFn({ method: "POST" })
       .eq("id", data.bookingId)
       .eq("trip_status", "picked_up");
     if (upErr) throw new Error(upErr.message);
+
+    await notifyTripStep(data.bookingId, "completed");
 
     return {
       ok: true,

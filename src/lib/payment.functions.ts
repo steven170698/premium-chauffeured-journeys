@@ -142,7 +142,8 @@ export const approveBooking = createServerFn({ method: "POST" })
         const { bookingApprovedEmail } = await import("@/lib/email-templates");
         const { createNotification } = await import("@/lib/notifications.server");
         const site = (process.env.PUBLIC_SITE_URL || "https://stevieservicesllc.com").replace(/\/$/, "");
-        const payUrl = `${site}/dashboard?booking=${booking.id}&pay=1`;
+        // Public, no-login pay page — the passenger pays directly from the email.
+        const payUrl = `${site}/booking/success?booking_id=${booking.id}`;
         await Promise.allSettled([
           sendRendered(
             booking.email,
@@ -166,7 +167,7 @@ export const approveBooking = createServerFn({ method: "POST" })
             type: "booking_approved",
             title: "Ride approved — payment required",
             body: `${booking.reservation_number} is approved. Pay to confirm your reservation.`,
-            link: `/dashboard?booking=${booking.id}&pay=1`,
+            link: `/booking/success?booking_id=${booking.id}`,
           }),
         ]);
       } catch (e) {
@@ -294,6 +295,51 @@ export const startBookingPayment = createServerFn({ method: "POST" })
         .update({ stripe_session_id: session.id })
         .eq("id", data.bookingId);
 
+      return { clientSecret: session.client_secret ?? "" };
+    } catch (e) {
+      return { error: getStripeErrorMessage(e) };
+    }
+  });
+
+/**
+ * PUBLIC (no login): the passenger pays directly from the emailed link.
+ * There is no auth middleware — access is gated by the booking's unguessable
+ * UUID (the capability) plus a strict status/deadline check. It only ever
+ * opens a Stripe checkout for the exact stored total of an awaiting-payment
+ * booking, so no sensitive data is exposed and nothing else can be triggered.
+ */
+export const startGuestBookingPayment = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        environment: z.enum(["sandbox", "live"]),
+        returnUrl: z.string().url(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const booking = await loadBooking(data.bookingId);
+      if (booking.trip_status !== "awaiting_payment") {
+        return { error: "This booking is not awaiting payment." };
+      }
+      if (
+        booking.payment_deadline_at &&
+        new Date(booking.payment_deadline_at) < new Date()
+      ) {
+        return { error: "The payment window has expired. Please request a new ride." };
+      }
+      const session = await createSessionForBooking(
+        booking as Parameters<typeof createSessionForBooking>[0],
+        data.environment as StripeEnv,
+        data.returnUrl,
+      );
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin
+        .from("bookings")
+        .update({ stripe_session_id: session.id })
+        .eq("id", data.bookingId);
       return { clientSecret: session.client_secret ?? "" };
     } catch (e) {
       return { error: getStripeErrorMessage(e) };

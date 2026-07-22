@@ -326,6 +326,72 @@ export function bookingApprovedEmail(d: BookingEmailData): RenderedEmail {
 }
 
 /* ------------------------------------------------------------------ */
+/* Customer: live trip status updates (driver steps)                   */
+/* ------------------------------------------------------------------ */
+export type TripStep = "driver_en_route" | "driver_arrived" | "picked_up" | "completed";
+
+const TRIP_STEP_COPY: Record<
+  TripStep,
+  { badge: string; subject: string; heading: string; intro: (first: string) => string }
+> = {
+  driver_en_route: {
+    badge: "Driver En Route",
+    subject: "Your driver is on the way",
+    heading: "Your driver is on the way",
+    intro: (n) => `${n}, your chauffeur is en route to your pickup location. Please be ready.`,
+  },
+  driver_arrived: {
+    badge: "Driver Arrived",
+    subject: "Your driver has arrived",
+    heading: "Your driver has arrived",
+    intro: (n) => `${n}, your chauffeur has arrived at your pickup and is waiting for you.`,
+  },
+  picked_up: {
+    badge: "On the Way",
+    subject: "You're on your way",
+    heading: "Enjoy your ride",
+    intro: (n) => `${n}, you're on your way to your destination. Sit back and relax.`,
+  },
+  completed: {
+    badge: "Trip Complete",
+    subject: "Your trip is complete — thank you",
+    heading: "You've arrived",
+    intro: (n) => `Thank you for riding with ${BRAND.name}, ${n}. We hope you enjoyed the experience.`,
+  },
+};
+
+export function tripUpdateEmail(d: BookingEmailData, step: TripStep): RenderedEmail {
+  const copy = TRIP_STEP_COPY[step];
+  const first = (d.customerName || "").split(" ")[0] || "there";
+  const rideUrl = `${BRAND.siteUrl}/booking/success?booking_id=${encodeURIComponent(d.bookingId)}`;
+  return {
+    subject: `${copy.subject} — ${d.reservationNumber}`,
+    html: layout({
+      preheader: `${copy.subject} · ${d.reservationNumber}`,
+      badge: statusBadge(copy.badge, step === "completed" ? "green" : "gold"),
+      heading: copy.heading,
+      intro: copy.intro(first),
+      panel: tripPanel(
+        d,
+        step === "completed" && d.amountPaid != null
+          ? [{ label: "Amount paid", value: formatMoney(d.amountPaid) }]
+          : [],
+      ),
+      cta: { label: "View my ride", url: rideUrl },
+    }),
+    text: textFor([
+      `${copy.subject} — ${d.reservationNumber}`,
+      ``,
+      copy.intro(d.customerName || "there"),
+      ``,
+      `Pickup: ${d.pickupAddress}`,
+      `Destination: ${d.destinationAddress}`,
+      `View your ride: ${rideUrl}`,
+    ]),
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /* Customer: declined                                                  */
 /* ------------------------------------------------------------------ */
 export function bookingDeclinedEmail(d: BookingEmailData): RenderedEmail {
