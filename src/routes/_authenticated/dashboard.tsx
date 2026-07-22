@@ -437,6 +437,11 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
             destination: dest,
             extraStops: booking.extra_stops ? 1 : 0,
             roundTrip: !!booking.is_round_trip,
+            pickupAt: pickupAt ? new Date(pickupAt).toISOString() : null,
+            serviceType: booking.trip_type,
+            hourlyHours: booking.hourly_hours,
+            meetAndGreet: booking.meet_and_greet,
+            childSeat: booking.child_seat,
           },
         });
         setPreview(q);
@@ -447,7 +452,17 @@ function EditBookingModal({ booking, onClose }: { booking: any; onClose: () => v
       }
     }, 400);
     return () => clearTimeout(t);
-  }, [pickup, dest, booking.extra_stops, booking.is_round_trip]);
+  }, [
+    pickup,
+    dest,
+    pickupAt,
+    booking.extra_stops,
+    booking.is_round_trip,
+    booking.trip_type,
+    booking.hourly_hours,
+    booking.meet_and_greet,
+    booking.child_seat,
+  ]);
 
 
 

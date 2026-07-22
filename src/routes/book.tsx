@@ -123,7 +123,19 @@ function BookPage() {
       pickupDate && pickupTime
         ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
         : null;
-    runQuote({ data: { pickup, destination, extraStops, roundTrip, pickupAt: pickupAtIso } })
+    runQuote({
+      data: {
+        pickup,
+        destination,
+        extraStops,
+        roundTrip,
+        pickupAt: pickupAtIso,
+        serviceType: tripType,
+        hourlyHours: tripType === "hourly" && hourlyHours ? Number(hourlyHours) : null,
+        meetAndGreet,
+        childSeat,
+      },
+    })
       .then((res) => {
         if (!cancelled) setQuote(res);
       })
@@ -140,7 +152,19 @@ function BookPage() {
     return () => {
       cancelled = true;
     };
-  }, [pickup, destination, extraStops, roundTrip, pickupDate, pickupTime, runQuote]);
+  }, [
+    pickup,
+    destination,
+    extraStops,
+    roundTrip,
+    pickupDate,
+    pickupTime,
+    tripType,
+    hourlyHours,
+    meetAndGreet,
+    childSeat,
+    runQuote,
+  ]);
 
   const canSubmit = Boolean(
     quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime && fareAccepted,
@@ -568,15 +592,34 @@ function BookPage() {
                   value={quote ? `${quote.durationMinutes} min` : "—"}
                 />
                 <div className="hairline" />
-                <BreakdownRow label="Base Fare" value={money(quote?.baseFare)} />
-                <BreakdownRow label="Mileage" value={money(quote?.mileage)} />
-                <BreakdownRow label="Time" value={money(quote?.time)} />
+                {quote?.hourly ? (
+                  <BreakdownRow
+                    label={`Hourly (${quote.hours}h)`}
+                    value={money(quote?.hourlyCharge)}
+                  />
+                ) : (
+                  <>
+                    <BreakdownRow label="Base Fare" value={money(quote?.baseFare)} />
+                    <BreakdownRow label="Mileage" value={money(quote?.mileage)} />
+                    <BreakdownRow label="Time" value={money(quote?.time)} />
+                  </>
+                )}
                 <BreakdownRow label="Booking Fee" value={money(quote?.bookingFee)} />
-                <BreakdownRow label="Airport Surcharge" value={money(quote?.airportSurcharge)} />
-                <BreakdownRow label="Extra Stops" value={money(quote?.stopsFee)} />
+                {!quote?.hourly && (
+                  <>
+                    <BreakdownRow label="Airport Surcharge" value={money(quote?.airportSurcharge)} />
+                    <BreakdownRow label="Extra Stops" value={money(quote?.stopsFee)} />
+                  </>
+                )}
                 <BreakdownRow label="Surcharges" value={money(quote?.surcharges)} />
                 <BreakdownRow label="Estimated Tolls" value={money(quote?.tollsEstimate)} />
                 {quote?.roundTrip && <BreakdownRow label="Round Trip" value="× 2" />}
+                {quote && quote.meetGreetFee > 0 && (
+                  <BreakdownRow label="Meet & Greet" value={money(quote.meetGreetFee)} />
+                )}
+                {quote && quote.childSeatFee > 0 && (
+                  <BreakdownRow label="Child Seat" value={money(quote.childSeatFee)} />
+                )}
                 <div className="hairline" />
                 <div className="flex items-baseline justify-between">
                   <div className="text-xs uppercase tracking-[0.28em] text-gold">

@@ -10,12 +10,17 @@ export type PlaceInput = {
 export type QuoteData = {
   distanceMiles: number;
   durationMinutes: number;
+  hourly: boolean;
+  hours: number;
+  hourlyCharge: number;
   baseFare: number;
   mileage: number;
   time: number;
   bookingFee: number;
   airportSurcharge: number;
   stopsFee: number;
+  meetGreetFee: number;
+  childSeatFee: number;
   surcharges: number;
   tollsEstimate: number;
   subtotal: number;
@@ -58,6 +63,12 @@ export async function computeQuoteInternal(input: {
   extraStops?: number;
   roundTrip?: boolean;
   pickupAt?: string | null;
+  /** Booking service type; "hourly" switches to hourly-charter pricing. */
+  serviceType?: string | null;
+  /** Requested hours for an hourly charter. */
+  hourlyHours?: number | null;
+  meetAndGreet?: boolean;
+  childSeat?: boolean;
 }): Promise<QuoteData> {
   const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
   const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -137,7 +148,7 @@ export async function computeQuoteInternal(input: {
   const { data: settings, error } = await supabase
     .from("public_pricing" as never)
     .select(
-      "base_fare, per_mile_rate, per_minute_rate, booking_fee, airport_surcharge, stop_fee, minimum_fare, night_surcharge_pct, night_start_hour, night_end_hour, weekend_surcharge_pct, holiday_surcharge_pct, surcharge_stacking",
+      "base_fare, per_mile_rate, per_minute_rate, booking_fee, airport_surcharge, stop_fee, minimum_fare, night_surcharge_pct, night_start_hour, night_end_hour, weekend_surcharge_pct, holiday_surcharge_pct, surcharge_stacking, hourly_rate, minimum_hourly_hours, meet_greet_fee, child_seat_fee",
     )
     .maybeSingle<{
       base_fare: number;
@@ -153,28 +164,44 @@ export async function computeQuoteInternal(input: {
       weekend_surcharge_pct: number | null;
       holiday_surcharge_pct: number | null;
       surcharge_stacking: string | null;
+      hourly_rate: number | null;
+      minimum_hourly_hours: number | null;
+      meet_greet_fee: number | null;
+      child_seat_fee: number | null;
     }>();
 
   if (error || !settings) throw new Error("Pricing is not configured yet.");
 
-  const baseFare = Number(settings.base_fare);
+  const baseFareRate = Number(settings.base_fare);
   const perMile = Number(settings.per_mile_rate);
   const perMinute = Number(settings.per_minute_rate);
   const bookingFee = Number(settings.booking_fee);
   const airportSurchargeRate = Number(settings.airport_surcharge);
   const stopFeeRate = Number(settings.stop_fee);
   const minimumFare = Number(settings.minimum_fare ?? 0);
+  const hourlyRate = Number(settings.hourly_rate ?? 0);
+  const minHourlyHours = Number(settings.minimum_hourly_hours ?? 0);
+  const meetGreetFeeRate = Number(settings.meet_greet_fee ?? 0);
+  const childSeatFeeRate = Number(settings.child_seat_fee ?? 0);
 
-  const mileage = round2(distanceMiles * perMile);
-  const time = round2(durationMinutes * perMinute);
+  // Hourly charter: billed by booked time, not point-to-point distance.
+  const isHourly = input.serviceType === "hourly";
+  const hours = isHourly ? Math.max(Number(input.hourlyHours ?? 0), minHourlyHours) : 0;
+  const hourlyCharge = isHourly ? round2(hours * hourlyRate) : 0;
+
+  // Distance-based components are not billed on an hourly charter.
+  const baseFare = isHourly ? 0 : baseFareRate;
+  const mileage = isHourly ? 0 : round2(distanceMiles * perMile);
+  const time = isHourly ? 0 : round2(durationMinutes * perMinute);
   const airportSurcharge =
-    input.pickup.isAirport || input.destination.isAirport ? airportSurchargeRate : 0;
-  const stopsFee = round2((input.extraStops ?? 0) * stopFeeRate);
+    !isHourly && (input.pickup.isAirport || input.destination.isAirport)
+      ? airportSurchargeRate
+      : 0;
+  const stopsFee = isHourly ? 0 : round2((input.extraStops ?? 0) * stopFeeRate);
 
-  // Base trip subtotal, then apply the configurable minimum-fare floor.
-  let base = round2(
-    baseFare + mileage + time + bookingFee + airportSurcharge + stopsFee + tollsEstimate,
-  );
+  // Trip base, then apply the configurable minimum-fare floor.
+  const tripCore = isHourly ? hourlyCharge : round2(baseFare + mileage + time);
+  let base = round2(tripCore + bookingFee + airportSurcharge + stopsFee + tollsEstimate);
   if (base < minimumFare) base = minimumFare;
 
   // Time-based percentage surcharges (night / weekend / holiday), applied only
@@ -223,17 +250,28 @@ export async function computeQuoteInternal(input: {
 
   const surcharges = round2(base * (surchargePct / 100));
   const subtotal = round2(base + surcharges);
-  const total = input.roundTrip ? round2(subtotal * 2) : subtotal;
+  const tripTotal = input.roundTrip ? round2(subtotal * 2) : subtotal;
+
+  // Flat per-booking add-on fees: charged once, not doubled on a round trip
+  // and not subject to the time-based percentage surcharges.
+  const meetGreetFee = input.meetAndGreet ? round2(meetGreetFeeRate) : 0;
+  const childSeatFee = input.childSeat ? round2(childSeatFeeRate) : 0;
+  const total = round2(tripTotal + meetGreetFee + childSeatFee);
 
   return {
     distanceMiles: round2(distanceMiles),
     durationMinutes: Math.round(durationMinutes),
+    hourly: isHourly,
+    hours,
+    hourlyCharge,
     baseFare: round2(baseFare),
     mileage,
     time,
     bookingFee: round2(bookingFee),
     airportSurcharge: round2(airportSurcharge),
     stopsFee,
+    meetGreetFee,
+    childSeatFee,
     surcharges,
     tollsEstimate: round2(tollsEstimate),
     subtotal: round2(subtotal),

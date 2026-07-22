@@ -98,6 +98,10 @@ export const requestBooking = createServerFn({ method: "POST" })
         extraStops: data.extraStop ? 1 : 0,
         roundTrip: data.isRoundTrip,
         pickupAt: data.pickupAt,
+        serviceType: data.tripType,
+        hourlyHours: data.hourlyHours,
+        meetAndGreet: data.meetAndGreet,
+        childSeat: data.childSeat,
       });
 
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -138,9 +142,9 @@ export const requestBooking = createServerFn({ method: "POST" })
       );
 
       const pickupAt = new Date(data.pickupAt);
-      const estimatedEndAt = new Date(
-        pickupAt.getTime() + quote.durationMinutes * 60 * 1000,
-      );
+      // An hourly charter runs for the booked hours, not the one-way drive time.
+      const endMinutes = quote.hourly ? quote.hours * 60 : quote.durationMinutes;
+      const estimatedEndAt = new Date(pickupAt.getTime() + endMinutes * 60 * 1000);
       const approvalDeadline = new Date(
         Date.now() + approvalWindowMin * 60 * 1000,
       );
@@ -175,7 +179,7 @@ export const requestBooking = createServerFn({ method: "POST" })
           estimated_duration_minutes: quote.durationMinutes,
           estimated_fare: quote.total,
           estimated_end_at: estimatedEndAt.toISOString(),
-          base_fare: quote.baseFare,
+          base_fare: quote.hourly ? quote.hourlyCharge : quote.baseFare,
           mileage_charge: quote.mileage,
           time_charge: quote.time,
           booking_fee: quote.bookingFee,

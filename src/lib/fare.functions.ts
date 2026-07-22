@@ -15,6 +15,10 @@ const quoteInputSchema = z.object({
   extraStops: z.number().int().min(0).max(10).optional().default(0),
   roundTrip: z.boolean().optional().default(false),
   pickupAt: z.string().optional().nullable(),
+  serviceType: z.string().optional().nullable(),
+  hourlyHours: z.number().min(0).max(24).optional().nullable(),
+  meetAndGreet: z.boolean().optional().default(false),
+  childSeat: z.boolean().optional().default(false),
 });
 
 export type QuoteInput = z.infer<typeof quoteInputSchema>;
@@ -22,12 +26,17 @@ export type QuoteInput = z.infer<typeof quoteInputSchema>;
 export type QuoteResult = {
   distanceMiles: number;
   durationMinutes: number;
+  hourly: boolean;
+  hours: number;
+  hourlyCharge: number;
   baseFare: number;
   mileage: number;
   time: number;
   bookingFee: number;
   airportSurcharge: number;
   stopsFee: number;
+  meetGreetFee: number;
+  childSeatFee: number;
   surcharges: number;
   tollsEstimate: number;
   subtotal: number;

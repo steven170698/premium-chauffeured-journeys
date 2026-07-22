@@ -47,7 +47,7 @@ async function loadOwnedBooking(bookingId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: booking, error } = await supabaseAdmin
     .from("bookings")
-    .select("id, user_id, trip_status")
+    .select("id, user_id, trip_status, trip_type, hourly_hours, meet_and_greet, child_seat")
     .eq("id", bookingId)
     .maybeSingle();
   if (error) return { error: error.message };
@@ -114,17 +114,23 @@ export const updateMyBooking = createServerFn({ method: "POST" })
     }
 
     const { computeQuoteInternal } = await import("./quote.server");
+    // Preserve the original service type / add-ons so an edit can't silently
+    // drop hourly pricing, meet-&-greet or child-seat fees.
     const quote = await computeQuoteInternal({
       pickup: data.pickup,
       destination: data.destination,
       extraStops: data.extraStop ? 1 : 0,
       roundTrip: data.isRoundTrip,
+      pickupAt: data.pickupAt,
+      serviceType: booking.trip_type,
+      hourlyHours: booking.hourly_hours,
+      meetAndGreet: booking.meet_and_greet,
+      childSeat: booking.child_seat,
     });
 
     const pickupAt = new Date(data.pickupAt);
-    const estimatedEndAt = new Date(
-      pickupAt.getTime() + quote.durationMinutes * 60 * 1000,
-    );
+    const endMinutes = quote.hourly ? quote.hours * 60 : quote.durationMinutes;
+    const estimatedEndAt = new Date(pickupAt.getTime() + endMinutes * 60 * 1000);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
@@ -149,7 +155,7 @@ export const updateMyBooking = createServerFn({ method: "POST" })
         estimated_duration_minutes: quote.durationMinutes,
         estimated_fare: quote.total,
         estimated_end_at: estimatedEndAt.toISOString(),
-        base_fare: quote.baseFare,
+        base_fare: quote.hourly ? quote.hourlyCharge : quote.baseFare,
         mileage_charge: quote.mileage,
         time_charge: quote.time,
         booking_fee: quote.bookingFee,
