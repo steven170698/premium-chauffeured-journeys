@@ -22,7 +22,10 @@ type FormState = {
   per_minute_rate: string;
   booking_fee: string;
   airport_surcharge: string;
+  airport_dropoff_fee: string;
   stop_fee: string;
+  free_pickup_waiting_minutes: string;
+  pickup_waiting_rate: string;
   deposit_percentage: string;
   minimum_fare: string;
   night_surcharge_pct: string;
@@ -61,7 +64,10 @@ function AdminSettings() {
         per_minute_rate: String(data.per_minute_rate ?? 0),
         booking_fee: String(data.booking_fee ?? 0),
         airport_surcharge: String(data.airport_surcharge ?? 0),
+        airport_dropoff_fee: String((data as any).airport_dropoff_fee ?? 0),
         stop_fee: String(data.stop_fee ?? 0),
+        free_pickup_waiting_minutes: String(data.free_pickup_waiting_minutes ?? 5),
+        pickup_waiting_rate: String(data.pickup_waiting_rate ?? 0),
         deposit_percentage: String(data.deposit_percentage ?? 25),
         minimum_fare: String(data.minimum_fare ?? 35),
         night_surcharge_pct: String(data.night_surcharge_pct ?? 15),
@@ -94,7 +100,10 @@ function AdminSettings() {
           per_minute_rate: Number(v.per_minute_rate),
           booking_fee: Number(v.booking_fee),
           airport_surcharge: Number(v.airport_surcharge),
+          airport_dropoff_fee: Number(v.airport_dropoff_fee),
           stop_fee: Number(v.stop_fee),
+          free_pickup_waiting_minutes: Number(v.free_pickup_waiting_minutes),
+          pickup_waiting_rate: Number(v.pickup_waiting_rate),
           deposit_percentage: Number(v.deposit_percentage),
           minimum_fare: Number(v.minimum_fare),
           night_surcharge_pct: Number(v.night_surcharge_pct),
@@ -141,8 +150,17 @@ function AdminSettings() {
         <NumField label="Per mile ($)" value={form.per_mile_rate} onChange={(v) => update("per_mile_rate", v)} />
         <NumField label="Per minute ($)" value={form.per_minute_rate} onChange={(v) => update("per_minute_rate", v)} />
         <NumField label="Booking fee ($)" value={form.booking_fee} onChange={(v) => update("booking_fee", v)} />
-        <NumField label="Airport surcharge ($)" value={form.airport_surcharge} onChange={(v) => update("airport_surcharge", v)} />
+        <NumField label="Airport pickup fee ($)" value={form.airport_surcharge} onChange={(v) => update("airport_surcharge", v)} />
+        <NumField label="Airport drop-off fee ($)" value={form.airport_dropoff_fee} onChange={(v) => update("airport_dropoff_fee", v)} />
         <NumField label="Extra stop fee ($)" value={form.stop_fee} onChange={(v) => update("stop_fee", v)} />
+      </Section>
+
+      <Section
+        title="Waiting time"
+        desc="Free minutes at pickup, then a per-minute charge added to the final fare."
+      >
+        <NumField label="Free waiting minutes" value={form.free_pickup_waiting_minutes} onChange={(v) => update("free_pickup_waiting_minutes", v)} />
+        <NumField label="Waiting rate ($/min after free)" value={form.pickup_waiting_rate} onChange={(v) => update("pickup_waiting_rate", v)} />
       </Section>
 
       <Section title="Payments" desc="Deposit percentage is available for future partial-payment mode.">

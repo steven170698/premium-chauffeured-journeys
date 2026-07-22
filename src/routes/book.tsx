@@ -441,40 +441,14 @@ function BookPage() {
                   </div>
                 ) : null}
 
+                {/* Customer-facing estimate: distance, travel time, and the total
+                    only. The itemized fare breakdown stays in the admin/driver
+                    and customer-dashboard views. */}
                 <BreakdownRow label="Distance" value={quote ? `${quote.distanceMiles} mi` : "—"} />
                 <BreakdownRow
                   label="Travel Time"
                   value={quote ? `${quote.durationMinutes} min` : "—"}
                 />
-                <div className="hairline" />
-                {quote?.hourly ? (
-                  <BreakdownRow
-                    label={`Hourly (${quote.hours}h)`}
-                    value={money(quote?.hourlyCharge)}
-                  />
-                ) : (
-                  <>
-                    <BreakdownRow label="Base Fare" value={money(quote?.baseFare)} />
-                    <BreakdownRow label="Mileage" value={money(quote?.mileage)} />
-                    <BreakdownRow label="Time" value={money(quote?.time)} />
-                  </>
-                )}
-                <BreakdownRow label="Booking Fee" value={money(quote?.bookingFee)} />
-                {!quote?.hourly && (
-                  <>
-                    <BreakdownRow label="Airport Surcharge" value={money(quote?.airportSurcharge)} />
-                    <BreakdownRow label="Extra Stops" value={money(quote?.stopsFee)} />
-                  </>
-                )}
-                <BreakdownRow label="Surcharges" value={money(quote?.surcharges)} />
-                <BreakdownRow label="Estimated Tolls" value={money(quote?.tollsEstimate)} />
-                {quote?.roundTrip && <BreakdownRow label="Round Trip" value="× 2" />}
-                {quote && quote.meetGreetFee > 0 && (
-                  <BreakdownRow label="Meet & Greet" value={money(quote.meetGreetFee)} />
-                )}
-                {quote && quote.childSeatFee > 0 && (
-                  <BreakdownRow label="Child Seat" value={money(quote.childSeatFee)} />
-                )}
                 <div className="hairline" />
                 <div className="flex items-baseline justify-between">
                   <div className="text-xs uppercase tracking-[0.28em] text-gold">

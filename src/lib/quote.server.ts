@@ -122,7 +122,12 @@ export async function computeQuoteInternal(input: {
   const perMile = Number(settings.per_mile_rate);
   const perMinute = Number(settings.per_minute_rate);
   const bookingFee = Number(settings.booking_fee);
-  const airportSurchargeRate = Number(settings.airport_surcharge);
+  // `airport_surcharge` is the airport PICKUP fee; `airport_dropoff_fee` the
+  // airport DROP-OFF fee. They can differ (e.g. $15 pickup / $10 drop-off).
+  const airportPickupFee = Number(settings.airport_surcharge ?? 0);
+  const airportDropoffFee = Number(
+    (settings as { airport_dropoff_fee?: number | null }).airport_dropoff_fee ?? 0,
+  );
   const stopFeeRate = Number(settings.stop_fee);
   const minimumFare = Number(settings.minimum_fare ?? 0);
   const hourlyRate = Number(settings.hourly_rate ?? 0);
@@ -139,10 +144,10 @@ export async function computeQuoteInternal(input: {
   const baseFare = isHourly ? 0 : baseFareRate;
   const mileage = isHourly ? 0 : round2(distanceMiles * perMile);
   const time = isHourly ? 0 : round2(durationMinutes * perMinute);
-  const airportSurcharge =
-    !isHourly && (input.pickup.isAirport || input.destination.isAirport)
-      ? airportSurchargeRate
-      : 0;
+  const airportSurcharge = isHourly
+    ? 0
+    : (input.pickup.isAirport ? airportPickupFee : 0) +
+      (input.destination.isAirport ? airportDropoffFee : 0);
   const stopsFee = isHourly ? 0 : round2((input.extraStops ?? 0) * stopFeeRate);
 
   // Trip base, then apply the configurable minimum-fare floor.

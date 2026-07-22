@@ -295,8 +295,11 @@ export const updateAdminSettings = createServerFn({ method: "POST" })
         per_mile_rate: z.number().min(0).optional(),
         per_minute_rate: z.number().min(0).optional(),
         booking_fee: z.number().min(0).optional(),
-        airport_surcharge: z.number().min(0).optional(),
+        airport_surcharge: z.number().min(0).optional(), // airport pickup fee
+        airport_dropoff_fee: z.number().min(0).optional(),
         stop_fee: z.number().min(0).optional(),
+        free_pickup_waiting_minutes: z.number().int().min(0).max(120).optional(),
+        pickup_waiting_rate: z.number().min(0).optional(),
         deposit_percentage: z.number().min(0).max(100).optional(),
         // Prompt 3 pricing knobs
         minimum_fare: z.number().min(0).optional(),
