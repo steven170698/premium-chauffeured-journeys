@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { loadGoogleMaps, type SelectedPlace } from "@/lib/useGoogleMaps";
-
-type Suggestion = {
-  placeId: string;
-  primary: string;
-  secondary: string;
-};
+import { useServerFn } from "@tanstack/react-start";
+import {
+  placeAutocomplete,
+  type PlaceSuggestion,
+  type SelectedPlace,
+} from "@/lib/geo.functions";
 
 type Props = {
   value: string;
@@ -17,13 +16,6 @@ type Props = {
   id?: string;
 };
 
-const NY_NJ_BIAS = {
-  north: 41.6,
-  south: 39.4,
-  east: -73.0,
-  west: -75.6,
-};
-
 export function PlaceAutocomplete({
   value,
   onChange,
@@ -33,28 +25,12 @@ export function PlaceAutocomplete({
   className,
   id,
 }: Props) {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
-  const placesLibRef = useRef<google.maps.PlacesLibrary | null>(null);
   const debounceRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    loadGoogleMaps()
-      .then(async (g) => {
-        if (cancelled) return;
-        const places = (await g.maps.importLibrary("places")) as google.maps.PlacesLibrary;
-        placesLibRef.current = places;
-        sessionTokenRef.current = new places.AutocompleteSessionToken();
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const run = useServerFn(placeAutocomplete);
 
   useEffect(() => {
     function onClickAway(e: MouseEvent) {
@@ -66,35 +42,18 @@ export function PlaceAutocomplete({
 
   function scheduleFetch(text: string) {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(() => fetchSuggestions(text), 180);
+    debounceRef.current = window.setTimeout(() => fetchSuggestions(text), 220);
   }
 
   async function fetchSuggestions(input: string) {
-    const places = placesLibRef.current;
-    if (!places || !input.trim()) {
+    if (!input.trim()) {
       setSuggestions([]);
       return;
     }
     try {
       setLoading(true);
-      const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-        input,
-        sessionToken: sessionTokenRef.current ?? undefined,
-        includedRegionCodes: ["us"],
-        locationBias: NY_NJ_BIAS,
-      });
-      const mapped: Suggestion[] = suggestions
-        .map((s) => {
-          const p = s.placePrediction;
-          if (!p) return null;
-          return {
-            placeId: p.placeId,
-            primary: p.mainText?.toString() ?? p.text?.toString() ?? "",
-            secondary: p.secondaryText?.toString() ?? "",
-          } as Suggestion;
-        })
-        .filter((x): x is Suggestion => !!x);
-      setSuggestions(mapped);
+      const results = await run({ data: { query: input } });
+      setSuggestions(results);
       setOpen(true);
     } catch (e) {
       console.error("autocomplete failed", e);
@@ -103,32 +62,18 @@ export function PlaceAutocomplete({
     }
   }
 
-  async function pickSuggestion(s: Suggestion) {
-    const places = placesLibRef.current;
-    if (!places) return;
-    try {
-      const place = new places.Place({ id: s.placeId });
-      await place.fetchFields({ fields: ["location", "formattedAddress", "types"] });
-      const loc = place.location;
-      if (!loc) return;
-      const types = place.types ?? [];
-      const isAirport = types.includes("airport");
-      const selected: SelectedPlace = {
-        placeId: s.placeId,
-        address: place.formattedAddress ?? `${s.primary}, ${s.secondary}`,
-        lat: loc.lat(),
-        lng: loc.lng(),
-        isAirport,
-      };
-      onChange(selected.address);
-      onSelect(selected);
-      setSuggestions([]);
-      setOpen(false);
-      // New session for next lookup
-      sessionTokenRef.current = new places.AutocompleteSessionToken();
-    } catch (e) {
-      console.error("place fetch failed", e);
-    }
+  function pickSuggestion(s: PlaceSuggestion) {
+    const selected: SelectedPlace = {
+      placeId: s.placeId,
+      address: s.address,
+      lat: s.lat,
+      lng: s.lng,
+      isAirport: s.isAirport,
+    };
+    onChange(selected.address);
+    onSelect(selected);
+    setSuggestions([]);
+    setOpen(false);
   }
 
   return (

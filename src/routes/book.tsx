@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
-import type { SelectedPlace } from "@/lib/useGoogleMaps";
+import type { SelectedPlace } from "@/lib/geo.functions";
 import { computeQuote, type QuoteResult } from "@/lib/fare.functions";
 import { requestBooking } from "@/lib/booking.functions";
 import { supabase } from "@/integrations/supabase/client";

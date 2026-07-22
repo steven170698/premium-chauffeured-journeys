@@ -12,7 +12,7 @@ import { getStripeEnvironment } from "@/lib/stripe";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe } from "@/lib/stripe";
 import { PlaceAutocomplete } from "@/components/PlaceAutocomplete";
-import type { SelectedPlace } from "@/lib/useGoogleMaps";
+import type { SelectedPlace } from "@/lib/geo.functions";
 
 
 

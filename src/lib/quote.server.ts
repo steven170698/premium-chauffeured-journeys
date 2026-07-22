@@ -29,8 +29,6 @@ export type QuoteData = {
   currency: "USD";
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
-
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
@@ -70,64 +68,41 @@ export async function computeQuoteInternal(input: {
   meetAndGreet?: boolean;
   childSeat?: boolean;
 }): Promise<QuoteData> {
-  const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
-  const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
-  if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
-    throw new Error("Google Maps connector credentials are not configured.");
+  const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY;
+  if (!GEOAPIFY_API_KEY) {
+    throw new Error("Geoapify credentials are not configured.");
   }
 
-  const routeRes = await fetch(`${GATEWAY_URL}/routes/directions/v2:computeRoutes`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "X-Connection-Api-Key": GOOGLE_MAPS_API_KEY,
-      "Content-Type": "application/json",
-      "X-Goog-FieldMask":
-        "routes.distanceMeters,routes.duration,routes.travelAdvisory.tollInfo.estimatedPrice",
-    },
-    body: JSON.stringify({
-      origin: { placeId: input.pickup.placeId },
-      destination: { placeId: input.destination.placeId },
-      travelMode: "DRIVE",
-      routingPreference: "TRAFFIC_AWARE",
-      extraComputations: ["TOLLS"],
-      units: "IMPERIAL",
-    }),
-  });
+  const routeUrl = new URL("https://api.geoapify.com/v1/routing");
+  routeUrl.searchParams.set(
+    "waypoints",
+    `${input.pickup.lat},${input.pickup.lng}|${input.destination.lat},${input.destination.lng}`,
+  );
+  routeUrl.searchParams.set("mode", "drive");
+  routeUrl.searchParams.set("apiKey", GEOAPIFY_API_KEY);
 
+  const routeRes = await fetch(routeUrl, { headers: { Accept: "application/json" } });
   if (!routeRes.ok) {
     const body = await routeRes.text();
-    console.error(`Routes API failed [${routeRes.status}]: ${body}`);
+    console.error(`Routing API failed [${routeRes.status}]: ${body}`);
     throw new Error("Could not calculate the route. Please check the addresses.");
   }
 
   const routeJson = (await routeRes.json()) as {
-    routes?: Array<{
-      distanceMeters?: number;
-      duration?: string;
-      travelAdvisory?: {
-        tollInfo?: {
-          estimatedPrice?: Array<{ units?: string; nanos?: number; currencyCode?: string }>;
-        };
-      };
-    }>;
+    features?: Array<{ properties?: { distance?: number; time?: number } }>;
   };
-
-  const route = routeJson.routes?.[0];
-  if (!route || !route.distanceMeters || !route.duration) {
+  const routeProps = routeJson.features?.[0]?.properties;
+  if (!routeProps || routeProps.distance == null || routeProps.time == null) {
     throw new Error("No driving route found between those addresses.");
   }
 
-  const distanceMiles = route.distanceMeters / 1609.344;
-  const durationSeconds = Number(route.duration.replace("s", ""));
-  const durationMinutes = durationSeconds / 60;
+  // Geoapify returns distance in meters and time in seconds.
+  const distanceMiles = routeProps.distance / 1609.344;
+  const durationMinutes = routeProps.time / 60;
 
-  let tollsEstimate = 0;
-  const tolls = route.travelAdvisory?.tollInfo?.estimatedPrice;
-  if (tolls && tolls.length) {
-    const usd = tolls.find((t) => t.currencyCode === "USD") ?? tolls[0];
-    tollsEstimate = Number(usd?.units ?? 0) + Number(usd?.nanos ?? 0) / 1e9;
-  }
+  // Geoapify routing does not provide toll price estimates; tolls are reconciled
+  // from actuals at trip end.
+  const tollsEstimate = 0;
 
   const { createClient } = await import("@supabase/supabase-js");
   const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
