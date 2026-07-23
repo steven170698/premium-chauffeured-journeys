@@ -73,6 +73,9 @@ async function createSessionForBooking(
     ],
     mode: "payment",
     ui_mode: "embedded_page",
+    // Card only — disables Stripe Link (the "Link" 1-click option that was
+    // pre-filling a saved phone number). Apple Pay / Google Pay still work.
+    payment_method_types: ["card"],
     return_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
     customer_email: booking.email,
     payment_intent_data: {

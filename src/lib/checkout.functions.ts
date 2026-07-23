@@ -156,6 +156,8 @@ export const createBookingCheckout = createServerFn({ method: "POST" })
         ],
         mode: "payment",
         ui_mode: "embedded_page",
+        // Card only — disables Stripe Link.
+        payment_method_types: ["card"],
         return_url: `${data.returnUrl}?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
         customer_email: data.email,
         payment_intent_data: {

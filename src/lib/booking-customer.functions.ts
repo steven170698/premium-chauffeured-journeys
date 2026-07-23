@@ -219,6 +219,8 @@ export const payTripBalance = createServerFn({ method: "POST" })
         ],
         mode: "payment",
         ui_mode: "embedded_page",
+        // Card only — disables Stripe Link.
+        payment_method_types: ["card"],
         return_url: `${data.returnUrl}?session_id={CHECKOUT_SESSION_ID}&booking_id=${(b as any).id}&balance=1`,
         customer_email: (b as any).email,
         metadata: {
