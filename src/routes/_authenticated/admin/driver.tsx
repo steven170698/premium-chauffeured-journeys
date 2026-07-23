@@ -89,7 +89,7 @@ function DriverDashboard() {
   const [tab, setTab] = useState<Tab>("today");
 
   return (
-    <div className="-mx-6 -my-10 min-h-screen bg-background pb-24">
+    <div className="-mx-4 -my-6 min-h-screen bg-background pb-24 sm:-mx-6 sm:-my-10">
       <div className="sticky top-0 z-30 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto max-w-3xl">
           <p className="text-[10px] uppercase tracking-[0.3em] text-gold">Driver</p>

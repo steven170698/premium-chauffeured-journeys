@@ -143,6 +143,53 @@ function AdminBookings() {
   ];
 
 
+  // Shared action buttons (Approve/Decline + status transitions) so the desktop
+  // table and the mobile cards render identical controls.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const renderActions = (b: any) => {
+    const actions = NEXT_ACTIONS[b.trip_status] ?? [];
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {b.trip_status === "pending_approval" && (
+          <>
+            <button
+              disabled={approveMut.isPending}
+              onClick={() => approveMut.mutate(b.id)}
+              className="rounded-full bg-gold-gradient px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-gold-foreground shadow-gold-glow disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              disabled={declineMut.isPending}
+              onClick={() => {
+                const reason = window.prompt("Reason for declining (shown to the customer):");
+                if (reason === null) return;
+                declineMut.mutate({ bookingId: b.id, reason });
+              }}
+              className="rounded-full border border-red-500/40 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+            >
+              Decline
+            </button>
+          </>
+        )}
+        {actions.map((a) => (
+          <button
+            key={a.to}
+            disabled={mut.isPending}
+            onClick={() => mut.mutate({ bookingId: b.id, status: a.to })}
+            className={`rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest transition ${
+              a.variant === "danger"
+                ? "border border-red-500/40 text-red-400 hover:bg-red-500/10"
+                : "bg-gold-gradient text-gold-foreground shadow-gold-glow"
+            } disabled:opacity-50`}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-3">
@@ -172,7 +219,8 @@ function AdminBookings() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card/60">
+      {/* Desktop / tablet: table */}
+      <div className="hidden overflow-x-auto rounded-2xl border border-border/60 bg-card/60 md:block">
         <table className="w-full text-sm">
           <thead className="bg-secondary/30 text-xs uppercase tracking-widest text-muted-foreground">
             <tr>
@@ -192,80 +240,71 @@ function AdminBookings() {
             {!isLoading && rows.length === 0 && (
               <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No bookings found.</td></tr>
             )}
-            {rows.map((b: any) => {
-              const actions = NEXT_ACTIONS[b.trip_status] ?? [];
-              return (
-                <tr key={b.id} className="border-t border-border/60 align-top">
-                  <td className="px-4 py-3">
-                    <div className="font-mono text-xs uppercase tracking-widest text-gold">{b.reservation_number}</div>
-                    <div className="text-[10px] text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{b.full_name}</div>
-                    <div className="text-xs text-muted-foreground">{b.email}</div>
-                    <div className="text-xs text-muted-foreground">{b.phone}</div>
-                  </td>
-                  <td className="px-4 py-3 max-w-[260px]">
-                    <div className="flex items-start gap-1.5 text-xs"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-gold" />{b.pickup_address}</div>
-                    <div className="mt-1 flex items-start gap-1.5 text-xs"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />{b.destination_address}</div>
-                  </td>
-                  <td className="px-4 py-3 text-xs">{new Date(b.pickup_at).toLocaleString()}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-block rounded-full border border-gold/30 bg-gold/10 px-2.5 py-0.5 text-[10px] uppercase tracking-widest text-gold">
-                      {b.trip_status.replace(/_/g, " ")}
-                    </span>
-                    <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-                      {b.payment_status.replace(/_/g, " ")}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right font-display">${Number(b.total).toFixed(2)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap justify-end gap-1.5">
-                      {b.trip_status === "pending_approval" && (
-                        <>
-                          <button
-                            disabled={approveMut.isPending}
-                            onClick={() => approveMut.mutate(b.id)}
-                            className="rounded-full bg-gold-gradient px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-gold-foreground shadow-gold-glow disabled:opacity-50"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            disabled={declineMut.isPending}
-                            onClick={() => {
-                              const reason = window.prompt(
-                                "Reason for declining (shown to the customer):",
-                              );
-                              if (reason === null) return;
-                              declineMut.mutate({ bookingId: b.id, reason });
-                            }}
-                            className="rounded-full border border-red-500/40 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-red-400 hover:bg-red-500/10 disabled:opacity-50"
-                          >
-                            Decline
-                          </button>
-                        </>
-                      )}
-                      {actions.map((a) => (
-                        <button
-                          key={a.to}
-                          disabled={mut.isPending}
-                          onClick={() => mut.mutate({ bookingId: b.id, status: a.to })}
-                          className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-widest transition ${
-                            a.variant === "danger"
-                              ? "border border-red-500/40 text-red-400 hover:bg-red-500/10"
-                              : "bg-gold-gradient text-gold-foreground shadow-gold-glow"
-                          } disabled:opacity-50`}
-                        >
-                          {a.label}
-                        </button>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+            {rows.map((b: any) => (
+              <tr key={b.id} className="border-t border-border/60 align-top">
+                <td className="px-4 py-3">
+                  <div className="font-mono text-xs uppercase tracking-widest text-gold">{b.reservation_number}</div>
+                  <div className="text-[10px] text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="font-medium">{b.full_name}</div>
+                  <div className="text-xs text-muted-foreground">{b.email}</div>
+                  <div className="text-xs text-muted-foreground">{b.phone}</div>
+                </td>
+                <td className="px-4 py-3 max-w-[260px]">
+                  <div className="flex items-start gap-1.5 text-xs"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-gold" />{b.pickup_address}</div>
+                  <div className="mt-1 flex items-start gap-1.5 text-xs"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />{b.destination_address}</div>
+                </td>
+                <td className="px-4 py-3 text-xs">{new Date(b.pickup_at).toLocaleString()}</td>
+                <td className="px-4 py-3">
+                  <span className="inline-block rounded-full border border-gold/30 bg-gold/10 px-2.5 py-0.5 text-[10px] uppercase tracking-widest text-gold">
+                    {b.trip_status.replace(/_/g, " ")}
+                  </span>
+                  <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {b.payment_status.replace(/_/g, " ")}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-right font-display">${Number(b.total).toFixed(2)}</td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-end">{renderActions(b)}</div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile: cards — Approve/Decline are always on screen */}
+      <div className="space-y-3 md:hidden">
+        {isLoading && (
+          <div className="rounded-2xl border border-border/60 bg-card/60 px-4 py-8 text-center text-muted-foreground">Loading…</div>
+        )}
+        {!isLoading && rows.length === 0 && (
+          <div className="rounded-2xl border border-border/60 bg-card/60 px-4 py-8 text-center text-muted-foreground">No bookings found.</div>
+        )}
+        {rows.map((b: any) => (
+          <div key={b.id} className="rounded-2xl border border-border/60 bg-card/60 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-mono text-xs uppercase tracking-widest text-gold">{b.reservation_number}</div>
+                <div className="mt-0.5 font-medium">{b.full_name}</div>
+                <a href={`tel:${b.phone}`} className="text-xs text-muted-foreground underline-offset-2 hover:underline">{b.phone}</a>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="font-display text-lg">${Number(b.total).toFixed(2)}</div>
+                <span className="mt-1 inline-block rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-gold">
+                  {b.trip_status.replace(/_/g, " ")}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+              <div className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-gold" />{b.pickup_address}</div>
+              <div className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />{b.destination_address}</div>
+              <div className="pt-0.5">{new Date(b.pickup_at).toLocaleString()}</div>
+            </div>
+            <div className="mt-3">{renderActions(b)}</div>
+          </div>
+        ))}
       </div>
     </div>
   );
