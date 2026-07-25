@@ -28,7 +28,7 @@ export const Route = createFileRoute("/faq")({
 
 const FAQS = [
   { q: "What areas do you serve?", a: "New York City (all five boroughs), Long Island, Westchester, and all of New Jersey. Long-distance rides available on request." },
-  { q: "How do I book a ride?", a: "Use the online booking form to request your ride. You'll receive a confirmation once the driver approves, then a secure payment link." },
+  { q: "How do I book a ride?", a: "Use the online booking form to get an instant price, then pay to hold your ride. Your card is only authorised at that point — we charge it once we accept your ride, and release the hold if we can't take it." },
   { q: "When am I charged?", a: "You are NOT charged when you submit a request. Payment is collected only after the driver approves your booking, via a secure Stripe checkout link valid for 30 minutes." },
   { q: "What if my actual fare differs from the estimate?", a: "We track actual mileage and time. If the final fare is lower, we automatically refund the difference. If higher (capped at 20% over the estimate), we send a balance payment link." },
   { q: "Can I cancel or edit my booking?", a: "Yes — anytime before the driver approves your request, you can cancel or edit for free from your customer dashboard." },

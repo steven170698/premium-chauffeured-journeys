@@ -456,7 +456,9 @@ function BookPage() {
                   )}
                 </button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  No charge yet. We'll review your request and send a secure payment link once your ride is approved.
+                  You'll pay on the next step to hold your ride. Your card is only
+                  authorised — we charge it when we accept your ride, and release the
+                  hold if we can't take it.
                 </p>
               </div>
             </div>

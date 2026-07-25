@@ -86,7 +86,7 @@ function SuccessPage() {
 
   let title = "Request received";
   let body =
-    "Thanks — your ride request is in. We'll review it shortly and email you a secure payment link once it's approved. No charge has been made.";
+    "Thanks — your ride request is in. No charge has been made yet.";
   let icon = <Info className="h-8 w-8" />;
 
   if (isLoading || (!booking && cameFromStripe)) {
@@ -107,9 +107,9 @@ function SuccessPage() {
       "Payment received and your ride is confirmed. A receipt has been sent to your email.";
   } else if (status === "awaiting_payment") {
     icon = <Info className="h-8 w-8" />;
-    title = "Approved — pay to confirm";
+    title = "Reserve your ride";
     body =
-      "Your ride has been approved. Pay securely below to lock in your reservation — no account or login needed.";
+      "Pay securely below to hold your reservation — no account or login needed. Your card is only authorised now; we charge it once we accept your ride, and release the hold if we can't.";
   } else if (status === "driver_en_route") {
     icon = <CheckCircle2 className="h-8 w-8" />;
     title = "Your driver is on the way";
@@ -130,9 +130,20 @@ function SuccessPage() {
     body =
       "The secure payment window expired before this booking was paid. You can submit a new request anytime.";
   } else if (status === "pending_approval") {
-    title = "Awaiting driver approval";
-    body =
-      "Your request is with the driver. We'll email you a secure payment link once it's approved. No charge yet.";
+    // After payment this state means "card authorised, waiting on us to accept".
+    // It only means "not paid yet" when the admin vets requests before payment.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const held = (booking as any)?.payment_status === "authorized";
+    if (held) {
+      icon = <Info className="h-8 w-8" />;
+      title = "Confirming your ride";
+      body =
+        "Your payment is authorised but you have not been charged. We're confirming your ride now — we only take the payment once we accept it, and if we can't, the hold is released.";
+    } else {
+      title = "Awaiting driver approval";
+      body =
+        "Your request is with the driver. We'll email you a secure payment link once it's approved. No charge yet.";
+    }
   }
 
   return (

@@ -227,7 +227,7 @@ export function bookingReceivedEmail(d: BookingEmailData): RenderedEmail {
       intro: `Thanks, ${d.customerName.split(" ")[0]}. We've got your request and our team will review it shortly. You have not been charged — a secure payment request will be sent only after your ride is approved.`,
       panel: tripPanel(d, [{ label: "Estimated fare", value: formatMoney(d.estimatedFare) }]),
       cta: { label: "View my reservation", url: manageUrl(d.bookingId) },
-      note: `<strong style="color:${C.text};">You have not been charged.</strong> Please do not send card information by email or text. Once approved, you'll receive a secure payment link.`,
+      note: `<strong style="color:${C.text};">You have not been charged.</strong> Please do not send card information by email or text. When you pay, your card is only authorised — we charge it once we accept your ride, and release the hold if we can't take it.`,
     }),
     text: textFor([
       `Your ride request has been received — ${d.reservationNumber}`,

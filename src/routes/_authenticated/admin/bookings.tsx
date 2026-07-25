@@ -112,7 +112,7 @@ function AdminBookings() {
         },
       }),
     onSuccess: () => {
-      toast.success("Approved — payment link sent to customer");
+      toast.success("Ride accepted — payment captured");
       invalidate();
     },
     onError: (e) => toast.error((e as Error).message),

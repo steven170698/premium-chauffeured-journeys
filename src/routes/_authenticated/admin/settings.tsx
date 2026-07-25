@@ -198,7 +198,7 @@ function AdminSettings() {
         <NumField label="Child seat fee ($)" value={form.child_seat_fee} onChange={(v) => update("child_seat_fee", v)} />
       </Section>
 
-      <Section title="Approval & payment workflow" desc="Customers are never charged until you approve. After approval a secure payment link is sent; the reservation stays held until the payment window ends.">
+      <Section title="Approval & payment workflow" desc="Passengers pay up front, but the card is only authorised — the money is captured when you accept the ride, and the hold is released if you decline. Note Stripe voids an uncaptured hold after about 7 days.">
         <Toggle
           label="Require manual approval on every booking"
           value={form.require_approval}
