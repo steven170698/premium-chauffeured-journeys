@@ -11,9 +11,7 @@ export function haversineMiles(a: LatLng, b: LatLng): number {
   const dLng = toRad(b.lng - a.lng);
   const lat1 = toRad(a.lat);
   const lat2 = toRad(b.lat);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
@@ -87,9 +85,7 @@ export function computeFinalFare(
   const mileage = round2(inputs.actualDistanceMiles * Number(settings.per_mile_rate));
   const time = round2(inputs.actualDurationMinutes * Number(settings.per_minute_rate));
   const rawWait = inputs.billableWaitingMinutes * Number(settings.pickup_waiting_rate);
-  const waitingCharge = round2(
-    Math.min(rawWait, Number(settings.max_waiting_charge ?? Infinity)),
-  );
+  const waitingCharge = round2(Math.min(rawWait, Number(settings.max_waiting_charge ?? Infinity)));
   const baseFare = Number(settings.base_fare);
   const bookingFee = Number(settings.booking_fee);
 

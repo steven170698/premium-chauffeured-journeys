@@ -38,7 +38,6 @@ const requestInputSchema = z.object({
   idempotencyKey: z.string().optional().nullable(),
 });
 
-
 type RequestResult =
   | {
       bookingId: string;
@@ -128,9 +127,7 @@ export const requestBooking = createServerFn({ method: "POST" })
       // Load approval-workflow settings
       const { data: settings } = await supabaseAdmin
         .from("admin_settings")
-        .select(
-          "require_approval, approval_deadline_minutes, auto_confirm_future_bookings",
-        )
+        .select("require_approval, approval_deadline_minutes, auto_confirm_future_bookings")
         .eq("id", 1)
         .maybeSingle();
 
@@ -145,9 +142,7 @@ export const requestBooking = createServerFn({ method: "POST" })
       // An hourly charter runs for the booked hours, not the one-way drive time.
       const endMinutes = quote.hourly ? quote.hours * 60 : quote.durationMinutes;
       const estimatedEndAt = new Date(pickupAt.getTime() + endMinutes * 60 * 1000);
-      const approvalDeadline = new Date(
-        Date.now() + approvalWindowMin * 60 * 1000,
-      );
+      const approvalDeadline = new Date(Date.now() + approvalWindowMin * 60 * 1000);
 
       // Go straight to payment unless the admin explicitly wants to vet requests
       // first. Payment only authorises the card — the ride is still accepted (and
@@ -225,9 +220,8 @@ export const requestBooking = createServerFn({ method: "POST" })
       // (Prompt 2: an email failure does not cancel or delete a booking).
       try {
         const { sendRendered, adminAlertRecipients } = await import("@/lib/email.server");
-        const { bookingReceivedEmail, newBookingAlertEmail } = await import(
-          "@/lib/email-templates"
-        );
+        const { bookingReceivedEmail, newBookingAlertEmail } =
+          await import("@/lib/email-templates");
         const emailData = {
           bookingId: booking.id,
           reservationNumber: booking.reservation_number,

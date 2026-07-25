@@ -36,8 +36,10 @@ export const listTodayRides = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date();
-    const start = new Date(now); start.setHours(0, 0, 0, 0);
-    const end = new Date(now); end.setHours(23, 59, 59, 999);
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
     const { data, error } = await supabaseAdmin
       .from("bookings")
       .select(BOOKING_COLS)
@@ -53,17 +55,21 @@ export const listTodayRides = createServerFn({ method: "POST" })
 export const listUpcomingRides = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      range: z.enum(["today", "tomorrow", "week", "month"]),
-      status: z.enum(TRIP_STATUSES).optional(),
-    }).parse(data),
+    z
+      .object({
+        range: z.enum(["today", "tomorrow", "week", "month"]),
+        status: z.enum(TRIP_STATUSES).optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date();
-    let start = new Date(now); start.setHours(0, 0, 0, 0);
-    let end = new Date(now); end.setHours(23, 59, 59, 999);
+    let start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    let end = new Date(now);
+    end.setHours(23, 59, 59, 999);
     if (data.range === "tomorrow") {
       start.setDate(start.getDate() + 1);
       end.setDate(end.getDate() + 1);
@@ -88,11 +94,13 @@ export const listUpcomingRides = createServerFn({ method: "POST" })
 export const updateTripStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      bookingId: z.string().uuid(),
-      status: z.enum(TRIP_STATUSES),
-      confirmDemote: z.boolean().optional(),
-    }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        status: z.enum(TRIP_STATUSES),
+        confirmDemote: z.boolean().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -122,10 +130,12 @@ export const updateTripStatus = createServerFn({ method: "POST" })
 export const saveDriverNotes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      bookingId: z.string().uuid(),
-      notes: z.string().max(2000),
-    }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        notes: z.string().max(2000),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -142,11 +152,13 @@ export const saveDriverNotes = createServerFn({ method: "POST" })
 export const recordPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      bookingId: z.string().uuid(),
-      amount: z.number().positive(),
-      method: z.enum(["cash", "card", "other"]),
-    }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        amount: z.number().positive(),
+        method: z.enum(["cash", "card", "other"]),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -256,8 +268,7 @@ export const cancelRide = createServerFn({ method: "POST" })
         balance_due: released || newPaid <= 0 ? 0 : Math.max(0, total - newPaid),
         declined_at: new Date().toISOString(),
         declined_by: context.userId,
-        decline_reason:
-          data.reason?.trim() || "The driver had to cancel this ride.",
+        decline_reason: data.reason?.trim() || "The driver had to cancel this ride.",
       })
       .eq("id", data.bookingId);
     if (error) return { error: error.message };
@@ -310,11 +321,13 @@ export const cancelRide = createServerFn({ method: "POST" })
 export const issueRefund = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      bookingId: z.string().uuid(),
-      amount: z.number().positive().optional(),
-      environment: z.enum(["sandbox", "live"]),
-    }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        amount: z.number().positive().optional(),
+        environment: z.enum(["sandbox", "live"]),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -358,8 +371,10 @@ export const todayEarnings = createServerFn({ method: "POST" })
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const now = new Date();
-    const start = new Date(now); start.setHours(0, 0, 0, 0);
-    const end = new Date(now); end.setHours(23, 59, 59, 999);
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
 
     const { data: todays } = await supabaseAdmin
       .from("bookings")
@@ -368,7 +383,9 @@ export const todayEarnings = createServerFn({ method: "POST" })
       .lte("pickup_at", end.toISOString());
     const rows = (todays ?? []) as Array<any>;
     const active = rows.filter(
-      (r) => !["refunded", "partially_refunded"].includes(r.payment_status) && r.trip_status !== "canceled",
+      (r) =>
+        !["refunded", "partially_refunded"].includes(r.payment_status) &&
+        r.trip_status !== "canceled",
     );
     const completed = active.filter((r) => r.trip_status === "completed");
     const pending = active.filter((r) => r.trip_status !== "completed");
@@ -412,12 +429,14 @@ export const getAvailability = createServerFn({ method: "POST" })
 export const setAvailability = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      status: z.enum(["available", "busy", "vacation", "offline", "not_accepting"]),
-      startsAt: z.string(),
-      endsAt: z.string(),
-      customerMessage: z.string().max(500).optional().nullable(),
-    }).parse(data),
+    z
+      .object({
+        status: z.enum(["available", "busy", "vacation", "offline", "not_accepting"]),
+        startsAt: z.string(),
+        endsAt: z.string(),
+        customerMessage: z.string().max(500).optional().nullable(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -441,16 +460,11 @@ export const setAvailability = createServerFn({ method: "POST" })
 /** Remove an availability window (unblock time). */
 export const deleteAvailability = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ id: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("availability_status")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await supabaseAdmin.from("availability_status").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -458,9 +472,7 @@ export const deleteAvailability = createServerFn({ method: "POST" })
 /** Fetch trip status history for a booking. */
 export const getStatusHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ bookingId: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ bookingId: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

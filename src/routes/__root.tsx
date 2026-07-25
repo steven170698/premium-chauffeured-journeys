@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { LogOut, LayoutDashboard, LogIn } from "lucide-react";
@@ -147,28 +148,62 @@ function SiteHeader({ user }: { user: User | null }) {
             className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-gold/40 shadow-gold-glow"
           />
           <div className="leading-tight">
-            <div className="font-display text-base font-semibold tracking-tight">Stevie Services</div>
-            <div className="text-[10px] uppercase tracking-[0.28em] text-gold">Private Chauffeur</div>
+            <div className="font-display text-base font-semibold tracking-tight">
+              Stevie Services
+            </div>
+            <div className="text-[10px] uppercase tracking-[0.28em] text-gold">
+              Private Chauffeur
+            </div>
           </div>
         </Link>
         <nav className="hidden items-center gap-8 md:flex">
-          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-          <Link to="/book" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Book</Link>
-          <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
-          <a href="tel:9292999747" className="text-sm text-muted-foreground hover:text-foreground transition-colors">929-299-9747</a>
+          <Link
+            to="/"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Home
+          </Link>
+          <Link
+            to="/book"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Book
+          </Link>
+          <Link
+            to="/contact"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Contact
+          </Link>
+          <a
+            href="tel:9292999747"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            929-299-9747
+          </a>
         </nav>
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Link to="/dashboard" className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:bg-muted">
+              <Link
+                to="/dashboard"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-xs font-semibold hover:bg-muted"
+              >
                 <LayoutDashboard className="h-3 w-3" /> Dashboard
               </Link>
-              <button onClick={handleSignOut} title="Sign out" className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-2 text-xs font-semibold hover:bg-muted">
+              <button
+                onClick={handleSignOut}
+                title="Sign out"
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-2 text-xs font-semibold hover:bg-muted"
+              >
                 <LogOut className="h-3 w-3" />
               </button>
             </>
           ) : (
-            <Link to="/auth" className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-secondary px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted">
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-1.5 rounded-full border border-gold/40 bg-secondary px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted"
+            >
               <LogIn className="h-3 w-3" /> Log in
             </Link>
           )}
@@ -191,39 +226,90 @@ function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-3">
           <div>
             <div className="flex items-center gap-3">
-              <img src={stevieLogo} alt="Stevie Services LLC" className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-gold/40" />
+              <img
+                src={stevieLogo}
+                alt="Stevie Services LLC"
+                className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-gold/40"
+              />
               <div className="font-display text-lg font-semibold">Stevie Services LLC</div>
             </div>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              Professional, reliable, and comfortable private transportation across New York, New Jersey, and beyond.
+              Professional, reliable, and comfortable private transportation across New York, New
+              Jersey, and beyond.
             </p>
           </div>
           <div>
             <div className="text-xs uppercase tracking-[0.28em] text-gold">Contact</div>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li><a href="tel:9292999747" className="hover:text-foreground">929-299-9747</a></li>
-              <li><a href="https://StevieServicesLLC.com" className="hover:text-foreground">StevieServicesLLC.com</a></li>
+              <li>
+                <a href="tel:9292999747" className="hover:text-foreground">
+                  929-299-9747
+                </a>
+              </li>
+              <li>
+                <a href="https://StevieServicesLLC.com" className="hover:text-foreground">
+                  StevieServicesLLC.com
+                </a>
+              </li>
               <li>New York, NY & New Jersey · America/New_York</li>
             </ul>
           </div>
           <div>
             <div className="text-xs uppercase tracking-[0.28em] text-gold">Explore</div>
             <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/" className="hover:text-foreground">Home</Link></li>
-              <li><Link to="/services" className="hover:text-foreground">Services</Link></li>
-              <li><Link to="/services/airport" className="hover:text-foreground">Airport Transportation</Link></li>
-              <li><Link to="/services/hourly" className="hover:text-foreground">Hourly Chauffeur</Link></li>
-              <li><Link to="/about" className="hover:text-foreground">About</Link></li>
-              <li><Link to="/faq" className="hover:text-foreground">FAQ</Link></li>
-              <li><Link to="/book" className="hover:text-foreground">Book a Ride</Link></li>
-              <li><Link to="/contact" className="hover:text-foreground">Contact</Link></li>
+              <li>
+                <Link to="/" className="hover:text-foreground">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link to="/services" className="hover:text-foreground">
+                  Services
+                </Link>
+              </li>
+              <li>
+                <Link to="/services/airport" className="hover:text-foreground">
+                  Airport Transportation
+                </Link>
+              </li>
+              <li>
+                <Link to="/services/hourly" className="hover:text-foreground">
+                  Hourly Chauffeur
+                </Link>
+              </li>
+              <li>
+                <Link to="/about" className="hover:text-foreground">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="hover:text-foreground">
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <Link to="/book" className="hover:text-foreground">
+                  Book a Ride
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-foreground">
+                  Contact
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
         <div className="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          <Link to="/privacy" className="hover:text-foreground">Privacy Policy</Link>
-          <Link to="/terms" className="hover:text-foreground">Terms of Service</Link>
-          <Link to="/cancellation-policy" className="hover:text-foreground">Cancellation & Refund Policy</Link>
+          <Link to="/privacy" className="hover:text-foreground">
+            Privacy Policy
+          </Link>
+          <Link to="/terms" className="hover:text-foreground">
+            Terms of Service
+          </Link>
+          <Link to="/cancellation-policy" className="hover:text-foreground">
+            Cancellation & Refund Policy
+          </Link>
         </div>
         <div className="mt-10 flex flex-col justify-between gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground md:flex-row">
           <div>© {new Date().getFullYear()} Stevie Services LLC. All rights reserved.</div>
@@ -259,6 +345,7 @@ function RootComponent() {
         </main>
         <SiteFooter />
         <Toaster theme="dark" position="top-right" richColors />
+        <SpeedInsights />
       </div>
     </QueryClientProvider>
   );

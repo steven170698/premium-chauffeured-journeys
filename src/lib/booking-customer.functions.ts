@@ -62,9 +62,7 @@ async function loadOwnedBooking(bookingId: string) {
  * and started). Confirmed/started/completed rides go through admin.
  */
 export const cancelMyBooking = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) =>
-    z.object({ bookingId: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ bookingId: z.string().uuid() }).parse(data))
   .handler(async ({ data }) => {
     const owned = await loadOwnedBooking(data.bookingId);
     if ("error" in owned) return { error: owned.error };
@@ -108,8 +106,7 @@ export const updateMyBooking = createServerFn({ method: "POST" })
     const { booking } = owned;
     if (booking.trip_status !== "pending_approval") {
       return {
-        error:
-          "This ride can only be edited while it is awaiting driver approval.",
+        error: "This ride can only be edited while it is awaiting driver approval.",
       };
     }
 
@@ -239,5 +236,3 @@ export const payTripBalance = createServerFn({ method: "POST" })
       return { error: getStripeErrorMessage(e) };
     }
   });
-
-

@@ -36,10 +36,7 @@ export async function createNotification(input: NotificationInput): Promise<void
       link: input.link ?? null,
     } as never);
   } catch (e) {
-    console.error(
-      "[notifications] insert failed (non-fatal):",
-      e instanceof Error ? e.message : e,
-    );
+    console.error("[notifications] insert failed (non-fatal):", e instanceof Error ? e.message : e);
   }
 }
 

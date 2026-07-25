@@ -3,39 +3,38 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 /** Public — approved reviews for the homepage. */
-export const listApprovedReviews = createServerFn({ method: "GET" })
-  .handler(async () => {
-    const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
-    if (!url || !key) return [];
-    const { createClient } = await import("@supabase/supabase-js");
-    const client = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-      global: {
-        fetch: (input, init) => {
-          const h = new Headers(init?.headers);
-          if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
-            h.delete("Authorization");
-          }
-          h.set("apikey", key);
-          return fetch(input, { ...init, headers: h });
-        },
+export const listApprovedReviews = createServerFn({ method: "GET" }).handler(async () => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return [];
+  const { createClient } = await import("@supabase/supabase-js");
+  const client = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+    global: {
+      fetch: (input, init) => {
+        const h = new Headers(init?.headers);
+        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`) {
+          h.delete("Authorization");
+        }
+        h.set("apikey", key);
+        return fetch(input, { ...init, headers: h });
       },
-    });
-    const { data } = await client
-      .from("customer_reviews")
-      .select("id, rating, comment, created_at, admin_response")
-      .eq("is_approved", true)
-      .order("created_at", { ascending: false })
-      .limit(9);
-    return (data ?? []) as Array<{
-      id: string;
-      rating: number;
-      comment: string | null;
-      created_at: string;
-      admin_response: string | null;
-    }>;
+    },
   });
+  const { data } = await client
+    .from("customer_reviews")
+    .select("id, rating, comment, created_at, admin_response")
+    .eq("is_approved", true)
+    .order("created_at", { ascending: false })
+    .limit(9);
+  return (data ?? []) as Array<{
+    id: string;
+    rating: number;
+    comment: string | null;
+    created_at: string;
+    admin_response: string | null;
+  }>;
+});
 
 /** Customer submits a review for a completed ride they own. */
 export const submitReview = createServerFn({ method: "POST" })
@@ -63,18 +62,16 @@ export const submitReview = createServerFn({ method: "POST" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("customer_reviews")
-      .upsert(
-        {
-          user_id: context.userId,
-          booking_id: data.bookingId,
-          rating: data.rating,
-          comment: data.comment ?? null,
-          is_approved: false,
-        },
-        { onConflict: "booking_id" },
-      );
+    const { error } = await supabaseAdmin.from("customer_reviews").upsert(
+      {
+        user_id: context.userId,
+        booking_id: data.bookingId,
+        rating: data.rating,
+        comment: data.comment ?? null,
+        is_approved: false,
+      },
+      { onConflict: "booking_id" },
+    );
     if (error) throw new Error(error.message);
     return { ok: true };
   });

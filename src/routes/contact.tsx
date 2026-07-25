@@ -9,9 +9,17 @@ export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
       { title: "Contact — Stevie Services LLC" },
-      { name: "description", content: "Reach Stevie Services LLC. Call 929-299-9747 or send us a message. Available 24/7 in New York and New Jersey." },
+      {
+        name: "description",
+        content:
+          "Reach Stevie Services LLC. Call 929-299-9747 or send us a message. Available 24/7 in New York and New Jersey.",
+      },
       { property: "og:title", content: "Contact — Stevie Services LLC" },
-      { property: "og:description", content: "Call 929-299-9747 or send us a message. Available 24/7 in New York and New Jersey." },
+      {
+        property: "og:description",
+        content:
+          "Call 929-299-9747 or send us a message. Available 24/7 in New York and New Jersey.",
+      },
     ],
   }),
   component: ContactPage,
@@ -63,8 +71,18 @@ function ContactPage() {
         </div>
 
         <div className="mt-14 grid gap-6 md:grid-cols-3">
-          <InfoCard icon={<Phone className="h-5 w-5" />} label="Call" value="929-299-9747" href="tel:9292999747" />
-          <InfoCard icon={<Mail className="h-5 w-5" />} label="Website" value="StevieServicesLLC.com" href="https://StevieServicesLLC.com" />
+          <InfoCard
+            icon={<Phone className="h-5 w-5" />}
+            label="Call"
+            value="929-299-9747"
+            href="tel:9292999747"
+          />
+          <InfoCard
+            icon={<Mail className="h-5 w-5" />}
+            label="Website"
+            value="StevieServicesLLC.com"
+            href="https://StevieServicesLLC.com"
+          />
           <InfoCard icon={<Clock className="h-5 w-5" />} label="Hours" value="Available 24/7" />
         </div>
 
@@ -74,21 +92,63 @@ function ContactPage() {
               <CheckCircle2 className="h-12 w-12 text-gold" />
               <h2 className="font-display text-xl font-semibold">Message sent</h2>
               <p className="text-sm text-muted-foreground">
-                Thanks for reaching out — we usually reply within the hour. For anything urgent, please call us directly.
+                Thanks for reaching out — we usually reply within the hour. For anything urgent,
+                please call us directly.
               </p>
-              <a href="tel:9292999747" className="inline-flex items-center justify-center rounded-full bg-gold-gradient px-6 py-3 text-sm font-semibold text-gold-foreground shadow-gold-glow">
+              <a
+                href="tel:9292999747"
+                className="inline-flex items-center justify-center rounded-full bg-gold-gradient px-6 py-3 text-sm font-semibold text-gold-foreground shadow-gold-glow"
+              >
                 Call 929-299-9747
               </a>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-border/60 bg-card/60 p-6 md:p-8 backdrop-blur">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4 rounded-3xl border border-border/60 bg-card/60 p-6 md:p-8 backdrop-blur"
+            >
               <h2 className="font-display text-xl font-semibold">Send us a message</h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Full Name"><input value={name} onChange={(e) => setName(e.target.value)} type="text" autoComplete="name" className={inputCls} placeholder="Your name" /></Field>
-                <Field label="Phone"><input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" autoComplete="tel" className={inputCls} placeholder="Phone number" /></Field>
+                <Field label="Full Name">
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    type="text"
+                    autoComplete="name"
+                    className={inputCls}
+                    placeholder="Your name"
+                  />
+                </Field>
+                <Field label="Phone">
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    type="tel"
+                    autoComplete="tel"
+                    className={inputCls}
+                    placeholder="Phone number"
+                  />
+                </Field>
               </div>
-              <Field label="Email"><input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoComplete="email" className={inputCls} placeholder="you@example.com" /></Field>
-              <Field label="Message"><textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={5} className={inputCls} placeholder="How can we help?" /></Field>
+              <Field label="Email">
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  autoComplete="email"
+                  className={inputCls}
+                  placeholder="you@example.com"
+                />
+              </Field>
+              <Field label="Message">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={5}
+                  className={inputCls}
+                  placeholder="How can we help?"
+                />
+              </Field>
               {/* Honeypot — hidden from users, catches bots */}
               <input
                 value={company}
@@ -101,10 +161,23 @@ function ContactPage() {
                 style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
               />
               <div className="flex flex-col gap-3 sm:flex-row">
-                <button type="submit" disabled={submitting} className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gold-gradient px-6 py-3 text-sm font-semibold text-gold-foreground shadow-gold-glow disabled:opacity-60">
-                  {submitting ? (<><Loader2 className="h-4 w-4 animate-spin" /> Sending…</>) : "Send Message"}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gold-gradient px-6 py-3 text-sm font-semibold text-gold-foreground shadow-gold-glow disabled:opacity-60"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Sending…
+                    </>
+                  ) : (
+                    "Send Message"
+                  )}
                 </button>
-                <a href="tel:9292999747" className="inline-flex flex-1 items-center justify-center rounded-full border border-border bg-secondary/60 px-6 py-3 text-sm font-semibold text-foreground hover:bg-secondary">
+                <a
+                  href="tel:9292999747"
+                  className="inline-flex flex-1 items-center justify-center rounded-full border border-border bg-secondary/60 px-6 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
+                >
                   Call Now
                 </a>
               </div>
@@ -128,7 +201,8 @@ function ContactPage() {
               <div>
                 <div className="font-display text-lg font-semibold">Service Area</div>
                 <p className="text-sm text-muted-foreground">
-                  Based in New York and New Jersey — serving NYC, JFK, LGA, EWR, and long-distance destinations across the Northeast.
+                  Based in New York and New Jersey — serving NYC, JFK, LGA, EWR, and long-distance
+                  destinations across the Northeast.
                 </p>
               </div>
             </div>
@@ -145,13 +219,25 @@ const inputCls =
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
       {children}
     </label>
   );
 }
 
-function InfoCard({ icon, label, value, href }: { icon: React.ReactNode; label: string; value: string; href?: string }) {
+function InfoCard({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  href?: string;
+}) {
   const inner = (
     <>
       <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold-gradient text-gold-foreground shadow-gold-glow">
@@ -163,6 +249,13 @@ function InfoCard({ icon, label, value, href }: { icon: React.ReactNode; label: 
       </div>
     </>
   );
-  const cls = "group flex items-center gap-4 rounded-3xl border border-border/60 bg-card/60 p-6 transition-all hover:-translate-y-1 hover:border-gold/40 hover:shadow-elegant";
-  return href ? <a href={href} className={cls}>{inner}</a> : <div className={cls}>{inner}</div>;
+  const cls =
+    "group flex items-center gap-4 rounded-3xl border border-border/60 bg-card/60 p-6 transition-all hover:-translate-y-1 hover:border-gold/40 hover:shadow-elegant";
+  return href ? (
+    <a href={href} className={cls}>
+      {inner}
+    </a>
+  ) : (
+    <div className={cls}>{inner}</div>
+  );
 }

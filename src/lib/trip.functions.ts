@@ -36,12 +36,14 @@ async function notifyTripStep(
 export const startTrip = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      bookingId: z.string().uuid(),
-      lat: z.number().optional(),
-      lng: z.number().optional(),
-      accuracy: z.number().optional(),
-    }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+        accuracy: z.number().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -95,12 +97,14 @@ export const markArrivedAtPickup = createServerFn({ method: "POST" })
 export const markPickedUp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      bookingId: z.string().uuid(),
-      lat: z.number().optional(),
-      lng: z.number().optional(),
-      accuracy: z.number().optional(),
-    }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+        accuracy: z.number().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -155,12 +159,14 @@ export const markPickedUp = createServerFn({ method: "POST" })
 export const logTripLocation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      bookingId: z.string().uuid(),
-      lat: z.number(),
-      lng: z.number(),
-      accuracy: z.number().optional(),
-    }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        lat: z.number(),
+        lng: z.number(),
+        accuracy: z.number().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -185,15 +191,17 @@ export const logTripLocation = createServerFn({ method: "POST" })
 export const endTrip = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
-    z.object({
-      bookingId: z.string().uuid(),
-      tolls: z.number().min(0).optional().default(0),
-      parking: z.number().min(0).optional().default(0),
-      environment: z.enum(["sandbox", "live"]).optional(),
-      lat: z.number().optional(),
-      lng: z.number().optional(),
-      accuracy: z.number().optional(),
-    }).parse(data),
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        tolls: z.number().min(0).optional().default(0),
+        parking: z.number().min(0).optional().default(0),
+        environment: z.enum(["sandbox", "live"]).optional(),
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+        accuracy: z.number().optional(),
+      })
+      .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
@@ -237,18 +245,14 @@ export const endTrip = createServerFn({ method: "POST" })
     }));
     const gpsMiles = sumTrackDistance(tracked);
     // Fall back to the original estimate if we didn't get useful GPS.
-    const actualDistance = gpsMiles > 0.1
-      ? gpsMiles
-      : Number(booking.estimated_distance_miles ?? booking.distance_miles ?? 0);
+    const actualDistance =
+      gpsMiles > 0.1
+        ? gpsMiles
+        : Number(booking.estimated_distance_miles ?? booking.distance_miles ?? 0);
 
     const endedAt = new Date();
-    const startedAt = booking.trip_started_at
-      ? new Date(booking.trip_started_at)
-      : endedAt;
-    const actualDuration = Math.max(
-      0,
-      (endedAt.getTime() - startedAt.getTime()) / 60000,
-    );
+    const startedAt = booking.trip_started_at ? new Date(booking.trip_started_at) : endedAt;
+    const actualDuration = Math.max(0, (endedAt.getTime() - startedAt.getTime()) / 60000);
 
     const { data: settings } = await supabaseAdmin
       .from("admin_settings")
@@ -265,9 +269,10 @@ export const endTrip = createServerFn({ method: "POST" })
         billableWaitingMinutes: Number(booking.billable_waiting_minutes ?? 0),
         tolls: Number(data.tolls ?? booking.toll_estimate ?? 0),
         parking: Number(data.parking ?? 0),
-        airportSurcharge: Number(booking.airport_stop_fees ?? 0) > 0
-          ? Number(booking.airport_stop_fees) - Number(booking.mileage_charge && 0)
-          : 0,
+        airportSurcharge:
+          Number(booking.airport_stop_fees ?? 0) > 0
+            ? Number(booking.airport_stop_fees) - Number(booking.mileage_charge && 0)
+            : 0,
         stopsFee: 0, // already rolled into airport_stop_fees on booking
         isRoundTrip: Boolean(booking.is_round_trip),
       },
@@ -278,9 +283,7 @@ export const endTrip = createServerFn({ method: "POST" })
         booking_fee: Number((settings as any)?.booking_fee ?? 0),
         pickup_waiting_rate: Number((settings as any)?.pickup_waiting_rate ?? 0),
         max_waiting_charge: Number((settings as any)?.max_waiting_charge ?? 999),
-        max_automatic_fare_increase: Number(
-          (settings as any)?.max_automatic_fare_increase ?? 20,
-        ),
+        max_automatic_fare_increase: Number((settings as any)?.max_automatic_fare_increase ?? 20),
       },
       Number(booking.estimated_fare ?? booking.total ?? 0),
     );
@@ -293,11 +296,7 @@ export const endTrip = createServerFn({ method: "POST" })
     // Issue automatic refund on overpayment when we have a payment_intent.
     let refunded = 0;
     let paymentStatusUpdate: string | null = null;
-    if (
-      overpaid > 0 &&
-      booking.stripe_payment_intent &&
-      data.environment
-    ) {
+    if (overpaid > 0 && booking.stripe_payment_intent && data.environment) {
       try {
         const { createStripeClient } = await import("./stripe.server");
         const stripe = createStripeClient(data.environment);
@@ -306,10 +305,7 @@ export const endTrip = createServerFn({ method: "POST" })
           amount: Math.round(overpaid * 100),
         });
         refunded = (refund.amount ?? 0) / 100;
-        paymentStatusUpdate =
-          amountPaid - refunded <= 0
-            ? "refunded"
-            : "partially_refunded";
+        paymentStatusUpdate = amountPaid - refunded <= 0 ? "refunded" : "partially_refunded";
       } catch (e) {
         console.error("Auto-refund failed:", e);
       }

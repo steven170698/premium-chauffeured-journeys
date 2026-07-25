@@ -138,119 +138,205 @@ function AdminSettings() {
 
   return (
     <div className="space-y-8">
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        mut.mutate(form);
-      }}
-      className="space-y-8"
-    >
-      <Section title="Fare rates" desc="These drive every quote on the booking page.">
-        <NumField label="Base fare ($)" value={form.base_fare} onChange={(v) => update("base_fare", v)} />
-        <NumField label="Per mile ($)" value={form.per_mile_rate} onChange={(v) => update("per_mile_rate", v)} />
-        <NumField label="Per minute ($)" value={form.per_minute_rate} onChange={(v) => update("per_minute_rate", v)} />
-        <NumField label="Booking fee ($)" value={form.booking_fee} onChange={(v) => update("booking_fee", v)} />
-        <NumField label="Airport pickup fee ($)" value={form.airport_surcharge} onChange={(v) => update("airport_surcharge", v)} />
-        <NumField label="Airport drop-off fee ($)" value={form.airport_dropoff_fee} onChange={(v) => update("airport_dropoff_fee", v)} />
-        <NumField label="Extra stop fee ($)" value={form.stop_fee} onChange={(v) => update("stop_fee", v)} />
-      </Section>
-
-      <Section
-        title="Waiting time"
-        desc="Free minutes at pickup, then a per-minute charge added to the final fare."
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          mut.mutate(form);
+        }}
+        className="space-y-8"
       >
-        <NumField label="Free waiting minutes" value={form.free_pickup_waiting_minutes} onChange={(v) => update("free_pickup_waiting_minutes", v)} />
-        <NumField label="Waiting rate ($/min after free)" value={form.pickup_waiting_rate} onChange={(v) => update("pickup_waiting_rate", v)} />
-      </Section>
+        <Section title="Fare rates" desc="These drive every quote on the booking page.">
+          <NumField
+            label="Base fare ($)"
+            value={form.base_fare}
+            onChange={(v) => update("base_fare", v)}
+          />
+          <NumField
+            label="Per mile ($)"
+            value={form.per_mile_rate}
+            onChange={(v) => update("per_mile_rate", v)}
+          />
+          <NumField
+            label="Per minute ($)"
+            value={form.per_minute_rate}
+            onChange={(v) => update("per_minute_rate", v)}
+          />
+          <NumField
+            label="Booking fee ($)"
+            value={form.booking_fee}
+            onChange={(v) => update("booking_fee", v)}
+          />
+          <NumField
+            label="Airport pickup fee ($)"
+            value={form.airport_surcharge}
+            onChange={(v) => update("airport_surcharge", v)}
+          />
+          <NumField
+            label="Airport drop-off fee ($)"
+            value={form.airport_dropoff_fee}
+            onChange={(v) => update("airport_dropoff_fee", v)}
+          />
+          <NumField
+            label="Extra stop fee ($)"
+            value={form.stop_fee}
+            onChange={(v) => update("stop_fee", v)}
+          />
+        </Section>
 
-      <Section title="Payments" desc="Deposit percentage is available for future partial-payment mode.">
-        <NumField label="Deposit %" value={form.deposit_percentage} onChange={(v) => update("deposit_percentage", v)} />
-        <NumField label="Minimum fare ($)" value={form.minimum_fare} onChange={(v) => update("minimum_fare", v)} />
-      </Section>
-
-      <Section
-        title="Time-based surcharges"
-        desc="Percentage add-ons applied to the trip subtotal based on the pickup time (Eastern). Night hours wrap past midnight when the start hour is later than the end hour."
-      >
-        <NumField label="Night surcharge (%)" value={form.night_surcharge_pct} onChange={(v) => update("night_surcharge_pct", v)} />
-        <NumField label="Weekend surcharge (%)" value={form.weekend_surcharge_pct} onChange={(v) => update("weekend_surcharge_pct", v)} />
-        <NumField label="Night starts at (hour 0–23)" value={form.night_start_hour} onChange={(v) => update("night_start_hour", v)} />
-        <NumField label="Night ends at (hour 0–23)" value={form.night_end_hour} onChange={(v) => update("night_end_hour", v)} />
-        <NumField label="Default holiday surcharge (%)" value={form.holiday_surcharge_pct} onChange={(v) => update("holiday_surcharge_pct", v)} />
-        <SelectField
-          label="When multiple surcharges apply"
-          value={form.surcharge_stacking}
-          onChange={(v) => update("surcharge_stacking", v)}
-          options={[
-            { value: "stack", label: "Stack — add them together" },
-            { value: "highest", label: "Highest — apply only the largest" },
-          ]}
-        />
-      </Section>
-
-      <Section
-        title="Hourly & add-on fees"
-        desc="Hourly-charter rate and flat fees for optional extras."
-      >
-        <NumField label="Hourly rate ($/hr)" value={form.hourly_rate} onChange={(v) => update("hourly_rate", v)} />
-        <NumField label="Minimum hourly hours" value={form.minimum_hourly_hours} onChange={(v) => update("minimum_hourly_hours", v)} />
-        <NumField label="Meet & greet fee ($)" value={form.meet_greet_fee} onChange={(v) => update("meet_greet_fee", v)} />
-        <NumField label="Child seat fee ($)" value={form.child_seat_fee} onChange={(v) => update("child_seat_fee", v)} />
-      </Section>
-
-      <Section title="Approval & payment workflow" desc="Passengers pay up front, but the card is only authorised — the money is captured when you accept the ride, and the hold is released if you decline. Note Stripe voids an uncaptured hold after about 7 days.">
-        <Toggle
-          label="Require manual approval on every booking"
-          value={form.require_approval}
-          onChange={(v) => update("require_approval", v)}
-        />
-        <Toggle
-          label="Auto-confirm future bookings (skip manual approval)"
-          value={form.auto_confirm_future_bookings}
-          onChange={(v) => update("auto_confirm_future_bookings", v)}
-        />
-        <Toggle
-          label="Hold requested time while awaiting driver approval"
-          value={form.hold_during_approval}
-          onChange={(v) => update("hold_during_approval", v)}
-        />
-        <NumField
-          label="Approval deadline (minutes)"
-          value={form.approval_deadline_minutes}
-          onChange={(v) => update("approval_deadline_minutes", v)}
-        />
-        <NumField
-          label="Customer payment window (minutes)"
-          value={form.payment_window_minutes}
-          onChange={(v) => update("payment_window_minutes", v)}
-        />
-      </Section>
-
-      <Section title="Notifications & calendar">
-        <Toggle
-          label="SMS notifications enabled"
-          value={form.sms_enabled}
-          onChange={(v) => update("sms_enabled", v)}
-        />
-        <TextField
-          label="Google Calendar ID (leave blank to use primary)"
-          value={form.google_calendar_id}
-          onChange={(v) => update("google_calendar_id", v)}
-        />
-      </Section>
-
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={mut.isPending}
-          className="rounded-full bg-gold-gradient px-6 py-2.5 text-sm font-semibold text-gold-foreground shadow-gold-glow disabled:opacity-50"
+        <Section
+          title="Waiting time"
+          desc="Free minutes at pickup, then a per-minute charge added to the final fare."
         >
-          {mut.isPending ? "Saving…" : "Save settings"}
-        </button>
-      </div>
-    </form>
+          <NumField
+            label="Free waiting minutes"
+            value={form.free_pickup_waiting_minutes}
+            onChange={(v) => update("free_pickup_waiting_minutes", v)}
+          />
+          <NumField
+            label="Waiting rate ($/min after free)"
+            value={form.pickup_waiting_rate}
+            onChange={(v) => update("pickup_waiting_rate", v)}
+          />
+        </Section>
 
-    <HolidaysManager />
+        <Section
+          title="Payments"
+          desc="Deposit percentage is available for future partial-payment mode."
+        >
+          <NumField
+            label="Deposit %"
+            value={form.deposit_percentage}
+            onChange={(v) => update("deposit_percentage", v)}
+          />
+          <NumField
+            label="Minimum fare ($)"
+            value={form.minimum_fare}
+            onChange={(v) => update("minimum_fare", v)}
+          />
+        </Section>
+
+        <Section
+          title="Time-based surcharges"
+          desc="Percentage add-ons applied to the trip subtotal based on the pickup time (Eastern). Night hours wrap past midnight when the start hour is later than the end hour."
+        >
+          <NumField
+            label="Night surcharge (%)"
+            value={form.night_surcharge_pct}
+            onChange={(v) => update("night_surcharge_pct", v)}
+          />
+          <NumField
+            label="Weekend surcharge (%)"
+            value={form.weekend_surcharge_pct}
+            onChange={(v) => update("weekend_surcharge_pct", v)}
+          />
+          <NumField
+            label="Night starts at (hour 0–23)"
+            value={form.night_start_hour}
+            onChange={(v) => update("night_start_hour", v)}
+          />
+          <NumField
+            label="Night ends at (hour 0–23)"
+            value={form.night_end_hour}
+            onChange={(v) => update("night_end_hour", v)}
+          />
+          <NumField
+            label="Default holiday surcharge (%)"
+            value={form.holiday_surcharge_pct}
+            onChange={(v) => update("holiday_surcharge_pct", v)}
+          />
+          <SelectField
+            label="When multiple surcharges apply"
+            value={form.surcharge_stacking}
+            onChange={(v) => update("surcharge_stacking", v)}
+            options={[
+              { value: "stack", label: "Stack — add them together" },
+              { value: "highest", label: "Highest — apply only the largest" },
+            ]}
+          />
+        </Section>
+
+        <Section
+          title="Hourly & add-on fees"
+          desc="Hourly-charter rate and flat fees for optional extras."
+        >
+          <NumField
+            label="Hourly rate ($/hr)"
+            value={form.hourly_rate}
+            onChange={(v) => update("hourly_rate", v)}
+          />
+          <NumField
+            label="Minimum hourly hours"
+            value={form.minimum_hourly_hours}
+            onChange={(v) => update("minimum_hourly_hours", v)}
+          />
+          <NumField
+            label="Meet & greet fee ($)"
+            value={form.meet_greet_fee}
+            onChange={(v) => update("meet_greet_fee", v)}
+          />
+          <NumField
+            label="Child seat fee ($)"
+            value={form.child_seat_fee}
+            onChange={(v) => update("child_seat_fee", v)}
+          />
+        </Section>
+
+        <Section
+          title="Approval & payment workflow"
+          desc="Passengers pay up front, but the card is only authorised — the money is captured when you accept the ride, and the hold is released if you decline. Note Stripe voids an uncaptured hold after about 7 days."
+        >
+          <Toggle
+            label="Require manual approval on every booking"
+            value={form.require_approval}
+            onChange={(v) => update("require_approval", v)}
+          />
+          <Toggle
+            label="Auto-confirm future bookings (skip manual approval)"
+            value={form.auto_confirm_future_bookings}
+            onChange={(v) => update("auto_confirm_future_bookings", v)}
+          />
+          <Toggle
+            label="Hold requested time while awaiting driver approval"
+            value={form.hold_during_approval}
+            onChange={(v) => update("hold_during_approval", v)}
+          />
+          <NumField
+            label="Approval deadline (minutes)"
+            value={form.approval_deadline_minutes}
+            onChange={(v) => update("approval_deadline_minutes", v)}
+          />
+          <NumField
+            label="Customer payment window (minutes)"
+            value={form.payment_window_minutes}
+            onChange={(v) => update("payment_window_minutes", v)}
+          />
+        </Section>
+
+        <Section title="Notifications & calendar">
+          <Toggle
+            label="SMS notifications enabled"
+            value={form.sms_enabled}
+            onChange={(v) => update("sms_enabled", v)}
+          />
+          <TextField
+            label="Google Calendar ID (leave blank to use primary)"
+            value={form.google_calendar_id}
+            onChange={(v) => update("google_calendar_id", v)}
+          />
+        </Section>
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={mut.isPending}
+            className="rounded-full bg-gold-gradient px-6 py-2.5 text-sm font-semibold text-gold-foreground shadow-gold-glow disabled:opacity-50"
+          >
+            {mut.isPending ? "Saving…" : "Save settings"}
+          </button>
+        </div>
+      </form>
+
+      <HolidaysManager />
     </div>
   );
 }
@@ -271,7 +357,12 @@ function HolidaysManager() {
   const addMut = useMutation({
     mutationFn: () =>
       addPricingHoliday({
-        data: { name: name.trim(), holiday_date: date, surcharge_pct: Number(pct), is_active: true },
+        data: {
+          name: name.trim(),
+          holiday_date: date,
+          surcharge_pct: Number(pct),
+          is_active: true,
+        },
       }),
     onSuccess: () => {
       toast.success("Holiday added");
@@ -403,7 +494,15 @@ function HolidaysManager() {
   );
 }
 
-function Section({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  desc,
+  children,
+}: {
+  title: string;
+  desc?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-3xl border border-border/60 bg-card/60 p-6">
       <h2 className="font-display text-lg font-semibold">{title}</h2>
@@ -412,7 +511,15 @@ function Section({ title, desc, children }: { title: string; desc?: string; chil
     </section>
   );
 }
-function NumField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function NumField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <label className="block">
       <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
@@ -454,7 +561,15 @@ function SelectField({
     </label>
   );
 }
-function TextField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function TextField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <label className="block sm:col-span-2">
       <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
@@ -467,7 +582,15 @@ function TextField({ label, value, onChange }: { label: string; value: string; o
     </label>
   );
 }
-function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+function Toggle({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
     <label className="flex items-center justify-between rounded-xl border border-border/60 bg-card p-3 sm:col-span-2">
       <span className="text-sm">{label}</span>

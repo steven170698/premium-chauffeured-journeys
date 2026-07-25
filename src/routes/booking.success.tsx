@@ -85,8 +85,7 @@ function SuccessPage() {
       : null;
 
   let title = "Request received";
-  let body =
-    "Thanks — your ride request is in. No charge has been made yet.";
+  let body = "Thanks — your ride request is in. No charge has been made yet.";
   let icon = <Info className="h-8 w-8" />;
 
   if (isLoading || (!booking && cameFromStripe)) {
@@ -103,8 +102,7 @@ function SuccessPage() {
   } else if (status === "confirmed") {
     icon = <CheckCircle2 className="h-8 w-8" />;
     title = "Ride confirmed";
-    body =
-      "Payment received and your ride is confirmed. A receipt has been sent to your email.";
+    body = "Payment received and your ride is confirmed. A receipt has been sent to your email.";
   } else if (status === "awaiting_payment") {
     icon = <Info className="h-8 w-8" />;
     title = "Reserve your ride";
@@ -182,9 +180,7 @@ function SuccessPage() {
           </div>
           <LiveMap pickup={{ lat: pickupLat, lng: pickupLng }} driver={driver} />
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            {driver
-              ? "Updating every ~10 seconds."
-              : "Waiting for your driver's location…"}
+            {driver ? "Updating every ~10 seconds." : "Waiting for your driver's location…"}
           </p>
         </div>
       )}

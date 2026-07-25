@@ -8,9 +8,7 @@ import { z } from "zod";
  * We look up strictly by booking id (uuid); no PII in the response.
  */
 export const getBookingStatus = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) =>
-    z.object({ bookingId: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ bookingId: z.string().uuid() }).parse(data))
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: booking, error } = await supabaseAdmin
@@ -35,9 +33,7 @@ const ACTIVE_TRIP_STATUSES = ["driver_en_route", "driver_arrived", "picked_up"];
  * strictly by booking id.
  */
 export const getDriverLocation = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) =>
-    z.object({ bookingId: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ bookingId: z.string().uuid() }).parse(data))
   .handler(
     async ({
       data,
@@ -68,7 +64,11 @@ export const getDriverLocation = createServerFn({ method: "POST" })
       }
       return {
         tripStatus,
-        location: { lat: Number(p.latitude), lng: Number(p.longitude), recordedAt: p.recorded_at ?? "" },
+        location: {
+          lat: Number(p.latitude),
+          lng: Number(p.longitude),
+          recordedAt: p.recorded_at ?? "",
+        },
       };
     },
   );

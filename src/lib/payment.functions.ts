@@ -1,11 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import {
-  createStripeClient,
-  getStripeErrorMessage,
-  type StripeEnv,
-} from "./stripe.server";
+import { createStripeClient, getStripeErrorMessage, type StripeEnv } from "./stripe.server";
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   // Verify admin via the service-role client reading user_roles directly (the
@@ -34,11 +30,7 @@ async function loadBooking(id: string) {
 
 async function loadSettings() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin
-    .from("admin_settings")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
+  const { data } = await supabaseAdmin.from("admin_settings").select("*").eq("id", 1).maybeSingle();
   return data as
     | (Record<string, unknown> & {
         payment_window_minutes?: number | null;
@@ -47,9 +39,16 @@ async function loadSettings() {
 }
 
 async function createSessionForBooking(
-  booking: { id: string; reservation_number: string; total: number | string;
-    email: string; pickup_address: string; destination_address: string;
-    is_round_trip: boolean; user_id: string | null },
+  booking: {
+    id: string;
+    reservation_number: string;
+    total: number | string;
+    email: string;
+    pickup_address: string;
+    destination_address: string;
+    is_round_trip: boolean;
+    user_id: string | null;
+  },
   environment: StripeEnv,
   returnUrl: string,
 ) {
@@ -217,7 +216,10 @@ export const approveBooking = createServerFn({ method: "POST" })
         const { sendRendered } = await import("@/lib/email.server");
         const { bookingApprovedEmail } = await import("@/lib/email-templates");
         const { createNotification } = await import("@/lib/notifications.server");
-        const site = (process.env.PUBLIC_SITE_URL || "https://stevieservicesllc.com").replace(/\/$/, "");
+        const site = (process.env.PUBLIC_SITE_URL || "https://stevieservicesllc.com").replace(
+          /\/$/,
+          "",
+        );
         // Public, no-login pay page — the passenger pays directly from the email.
         const payUrl = `${site}/booking/success?booking_id=${booking.id}`;
         await Promise.allSettled([
@@ -275,8 +277,7 @@ export const declineBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const reason =
-      data.reason?.trim() || "We're unable to accommodate this request at this time.";
+    const reason = data.reason?.trim() || "We're unable to accommodate this request at this time.";
 
     // Load booking details for the email before the status flips (best-effort).
     const booking = await loadBooking(data.bookingId).catch(() => null);

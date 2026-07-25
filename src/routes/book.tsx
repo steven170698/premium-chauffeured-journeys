@@ -86,7 +86,6 @@ function BookPage() {
   // duplicate bookings (enforced server-side + by a unique index).
   const [idempotencyKey] = useState(() => crypto.randomUUID());
 
-
   const extraStops = useMemo(() => (extraStopText.trim() ? 1 : 0), [extraStopText]);
   const runQuote = useServerFn(computeQuote);
   const runRequest = useServerFn(requestBooking);
@@ -122,9 +121,7 @@ function BookPage() {
     setLoadingQuote(true);
     setQuoteError(null);
     const pickupAtIso =
-      pickupDate && pickupTime
-        ? new Date(`${pickupDate}T${pickupTime}`).toISOString()
-        : null;
+      pickupDate && pickupTime ? new Date(`${pickupDate}T${pickupTime}`).toISOString() : null;
     runQuote({
       data: {
         pickup,
@@ -169,9 +166,16 @@ function BookPage() {
   ]);
 
   const canSubmit = Boolean(
-    quote && pickup && destination && fullName && email && phone && pickupDate && pickupTime && fareAccepted,
+    quote &&
+    pickup &&
+    destination &&
+    fullName &&
+    email &&
+    phone &&
+    pickupDate &&
+    pickupTime &&
+    fareAccepted,
   );
-
 
   const handleSubmit = async () => {
     if (!canSubmit || !pickup || !destination) {
@@ -212,7 +216,6 @@ function BookPage() {
           hourlyHours: hourlyHours ? Number(hourlyHours) : null,
         },
       });
-
 
       if ("error" in result) throw new Error(result.error);
       toast.success("Ride request submitted — awaiting driver approval.");
@@ -298,7 +301,11 @@ function BookPage() {
 
             <Fieldset title="Trip Details" step={isSignedIn ? "01" : "02"}>
               <div className="space-y-4">
-                <Field label="Pickup Address" required icon={<MapPin className="h-4 w-4 text-gold" />}>
+                <Field
+                  label="Pickup Address"
+                  required
+                  icon={<MapPin className="h-4 w-4 text-gold" />}
+                >
                   <PlaceAutocomplete
                     value={pickupText}
                     onChange={setPickupText}
@@ -325,7 +332,11 @@ function BookPage() {
                 </Field>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Pickup Date" required icon={<Calendar className="h-4 w-4 text-gold" />}>
+                  <Field
+                    label="Pickup Date"
+                    required
+                    icon={<Calendar className="h-4 w-4 text-gold" />}
+                  >
                     <input
                       type="date"
                       required
@@ -334,7 +345,11 @@ function BookPage() {
                       onChange={(e) => setPickupDate(e.target.value)}
                     />
                   </Field>
-                  <Field label="Pickup Time" required icon={<Clock className="h-4 w-4 text-gold" />}>
+                  <Field
+                    label="Pickup Time"
+                    required
+                    icon={<Clock className="h-4 w-4 text-gold" />}
+                  >
                     <input
                       type="time"
                       required
@@ -385,16 +400,15 @@ function BookPage() {
                 )}
               </div>
             </Fieldset>
-
-
-
           </form>
 
           {/* Estimate panel */}
           <aside className="lg:sticky lg:top-24 h-fit">
             <div className="overflow-hidden rounded-3xl border border-gold/30 bg-card shadow-elegant">
               <div className="border-b border-border/60 bg-gold-gradient p-5 text-gold-foreground">
-                <div className="text-[10px] uppercase tracking-[0.3em] opacity-80">Fare Estimate</div>
+                <div className="text-[10px] uppercase tracking-[0.3em] opacity-80">
+                  Fare Estimate
+                </div>
                 <div className="mt-1 font-display text-2xl font-semibold">Your Quote</div>
               </div>
               <div className="space-y-5 p-6">
@@ -456,9 +470,8 @@ function BookPage() {
                   )}
                 </button>
                 <p className="text-center text-[11px] text-muted-foreground">
-                  You'll pay on the next step to hold your ride. Your card is only
-                  authorised — we charge it when we accept your ride, and release the
-                  hold if we can't take it.
+                  You'll pay on the next step to hold your ride. Your card is only authorised — we
+                  charge it when we accept your ride, and release the hold if we can't take it.
                 </p>
               </div>
             </div>

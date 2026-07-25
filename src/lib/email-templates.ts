@@ -55,8 +55,9 @@ export function formatDateTime(iso: string | null | undefined): string {
 }
 
 function esc(s: string | null | undefined): string {
-  return String(s ?? "").replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
+  return String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
   );
 }
 
@@ -210,7 +211,10 @@ function tripPanel(d: BookingEmailData, extra: Row[] = []): string {
 }
 
 function textFor(lines: (string | false | null | undefined)[]): string {
-  return lines.filter(Boolean).join("\n") + `\n\n${BRAND.name} · ${BRAND.phone} · ${BRAND.email}\n${BRAND.siteUrl}`;
+  return (
+    lines.filter(Boolean).join("\n") +
+    `\n\n${BRAND.name} · ${BRAND.phone} · ${BRAND.email}\n${BRAND.siteUrl}`
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -272,11 +276,17 @@ export function newBookingAlertEmail(d: BookingEmailData): RenderedEmail {
         { label: "Pickup", value: formatDateTime(d.pickupAt) },
         { label: "Passengers", value: d.passengers ? String(d.passengers) : "—" },
         { label: "Distance", value: d.distanceMiles ? `${d.distanceMiles.toFixed(1)} mi` : "—" },
-        { label: "Duration", value: d.durationMinutes ? `${Math.round(d.durationMinutes)} min` : "—" },
+        {
+          label: "Duration",
+          value: d.durationMinutes ? `${Math.round(d.durationMinutes)} min` : "—",
+        },
         { label: "Estimated fare", value: formatMoney(d.estimatedFare) },
         { label: "Special instructions", value: d.specialInstructions || "—" },
       ]),
-      cta: { label: "Review booking", url: `${BRAND.siteUrl}/admin/bookings?booking=${encodeURIComponent(d.bookingId)}` },
+      cta: {
+        label: "Review booking",
+        url: `${BRAND.siteUrl}/admin/bookings?booking=${encodeURIComponent(d.bookingId)}`,
+      },
     }),
     text: textFor([
       `NEW RIDE REQUEST — ${d.reservationNumber}`,
@@ -307,9 +317,14 @@ export function bookingApprovedEmail(d: BookingEmailData): RenderedEmail {
       intro: `Good news, ${d.customerName.split(" ")[0]} — your ride is approved. Your reservation is not confirmed until payment is completed. Use the secure button below to pay.`,
       panel: tripPanel(d, [
         { label: "Approved amount", value: formatMoney(amount) },
-        { label: "Payment due by", value: d.paymentDeadlineAt ? formatDateTime(d.paymentDeadlineAt) : "—" },
+        {
+          label: "Payment due by",
+          value: d.paymentDeadlineAt ? formatDateTime(d.paymentDeadlineAt) : "—",
+        },
       ]),
-      cta: d.paymentUrl ? { label: "Pay now — secure checkout", url: d.paymentUrl } : { label: "View my reservation", url: manageUrl(d.bookingId) },
+      cta: d.paymentUrl
+        ? { label: "Pay now — secure checkout", url: d.paymentUrl }
+        : { label: "View my reservation", url: manageUrl(d.bookingId) },
       note: `The payment button is a secure Stripe checkout. <strong style="color:${C.text};">Never send card information by email or text.</strong> Your reservation is confirmed only after payment succeeds.`,
     }),
     text: textFor([
@@ -323,7 +338,9 @@ export function bookingApprovedEmail(d: BookingEmailData): RenderedEmail {
       `Pickup time: ${formatDateTime(d.pickupAt)}`,
       d.paymentDeadlineAt ? `Pay by: ${formatDateTime(d.paymentDeadlineAt)}` : null,
       ``,
-      d.paymentUrl ? `Pay securely: ${d.paymentUrl}` : `Manage reservation: ${manageUrl(d.bookingId)}`,
+      d.paymentUrl
+        ? `Pay securely: ${d.paymentUrl}`
+        : `Manage reservation: ${manageUrl(d.bookingId)}`,
       `Never send card details by email or text.`,
     ]),
   };
@@ -360,7 +377,8 @@ const TRIP_STEP_COPY: Record<
     badge: "Trip Complete",
     subject: "Your trip is complete — thank you",
     heading: "You've arrived",
-    intro: (n) => `Thank you for riding with ${BRAND.name}, ${n}. We hope you enjoyed the experience.`,
+    intro: (n) =>
+      `Thank you for riding with ${BRAND.name}, ${n}. We hope you enjoyed the experience.`,
   },
 };
 
@@ -410,7 +428,10 @@ export function bookingDeclinedEmail(d: BookingEmailData): RenderedEmail {
       panel: rowsHtml([
         { label: "Reservation", value: d.reservationNumber },
         { label: "Pickup", value: formatDateTime(d.pickupAt) },
-        { label: "Reason", value: d.declineReason || "Unable to accommodate this request at this time." },
+        {
+          label: "Reason",
+          value: d.declineReason || "Unable to accommodate this request at this time.",
+        },
       ]),
       cta: { label: "Submit another request", url: `${BRAND.siteUrl}/book` },
       note: `We'd love to help with another time or trip. Give us a call at <a href="tel:${BRAND.phoneHref}" style="color:${C.gold};text-decoration:none;">${esc(BRAND.phone)}</a> and we'll do our best to accommodate you.`,

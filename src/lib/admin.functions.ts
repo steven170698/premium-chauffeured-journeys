@@ -28,13 +28,14 @@ export const getAdminStats = createServerFn({ method: "POST" })
     await supabaseAdmin.rpc("mark_abandoned_bookings" as never);
 
     const now = new Date();
-    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
-    const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate() - 6); startOfWeek.setHours(0, 0, 0, 0);
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - 6);
+    startOfWeek.setHours(0, 0, 0, 0);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const { data: rev } = await supabaseAdmin
-      .from("revenue_records")
-      .select("amount, recorded_at");
+    const { data: rev } = await supabaseAdmin.from("revenue_records").select("amount, recorded_at");
     const revList = (rev ?? []) as Array<{ amount: number; recorded_at: string }>;
     const sum = (from: Date) =>
       revList
@@ -83,17 +84,20 @@ export const getAdminOverview = createServerFn({ method: "POST" })
     await supabaseAdmin.rpc("mark_abandoned_bookings" as never);
 
     const now = new Date();
-    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(startOfDay); endOfDay.setDate(endOfDay.getDate() + 1);
-    const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfWeek.getDate() - 6);
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    const startOfWeek = new Date(startOfDay);
+    startOfWeek.setDate(startOfWeek.getDate() - 6);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const startPrevWeek = new Date(startOfWeek); startPrevWeek.setDate(startPrevWeek.getDate() - 7);
-    const startPrevDay = new Date(startOfDay); startPrevDay.setDate(startPrevDay.getDate() - 1);
+    const startPrevWeek = new Date(startOfWeek);
+    startPrevWeek.setDate(startPrevWeek.getDate() - 7);
+    const startPrevDay = new Date(startOfDay);
+    startPrevDay.setDate(startPrevDay.getDate() - 1);
 
-    const { data: rev } = await supabaseAdmin
-      .from("revenue_records")
-      .select("amount, recorded_at");
+    const { data: rev } = await supabaseAdmin.from("revenue_records").select("amount, recorded_at");
     const revList = (rev ?? []) as Array<{ amount: number; recorded_at: string }>;
     const between = (from: Date, to: Date) =>
       revList
@@ -115,13 +119,36 @@ export const getAdminOverview = createServerFn({ method: "POST" })
       unreadSupport,
       customers,
     ] = await Promise.all([
-      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("trip_status", "pending_approval"),
-      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("trip_status", "awaiting_payment"),
-      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).in("trip_status", ["driver_en_route", "driver_arrived", "picked_up"]),
-      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("trip_status", "confirmed").gte("pickup_at", now.toISOString()),
-      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).eq("trip_status", "completed"),
-      supabaseAdmin.from("bookings").select("id", { count: "exact", head: true }).in("trip_status", ["canceled", "declined"]).gte("updated_at", startOfDay.toISOString()),
-      supabaseAdmin.from("support_requests" as never).select("id", { count: "exact", head: true }).eq("status" as never, "new" as never),
+      supabaseAdmin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("trip_status", "pending_approval"),
+      supabaseAdmin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("trip_status", "awaiting_payment"),
+      supabaseAdmin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .in("trip_status", ["driver_en_route", "driver_arrived", "picked_up"]),
+      supabaseAdmin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("trip_status", "confirmed")
+        .gte("pickup_at", now.toISOString()),
+      supabaseAdmin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("trip_status", "completed"),
+      supabaseAdmin
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .in("trip_status", ["canceled", "declined"])
+        .gte("updated_at", startOfDay.toISOString()),
+      supabaseAdmin
+        .from("support_requests" as never)
+        .select("id", { count: "exact", head: true })
+        .eq("status" as never, "new" as never),
       supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
     ]);
 
@@ -157,12 +184,16 @@ export const listTodayOperations = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const now = new Date();
-    const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(startOfDay); endOfDay.setDate(endOfDay.getDate() + 1);
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
 
     const { data: today } = await supabaseAdmin
       .from("bookings")
-      .select("id, reservation_number, full_name, phone, pickup_address, destination_address, pickup_at, trip_status, payment_status, total")
+      .select(
+        "id, reservation_number, full_name, phone, pickup_address, destination_address, pickup_at, trip_status, payment_status, total",
+      )
       .gte("pickup_at", startOfDay.toISOString())
       .lt("pickup_at", endOfDay.toISOString())
       .not("trip_status", "in", "(canceled,declined,payment_expired)")
@@ -176,9 +207,7 @@ export const listTodayOperations = createServerFn({ method: "POST" })
 /** Global admin search across bookings + customers. */
 export const globalAdminSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ q: z.string().trim().min(1).max(120) }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ q: z.string().trim().min(1).max(120) }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -188,7 +217,9 @@ export const globalAdminSearch = createServerFn({ method: "POST" })
       supabaseAdmin
         .from("bookings")
         .select("id, reservation_number, full_name, email, pickup_at, trip_status, total")
-        .or(`reservation_number.ilike.${term},full_name.ilike.${term},email.ilike.${term},phone.ilike.${term}`)
+        .or(
+          `reservation_number.ilike.${term},full_name.ilike.${term},email.ilike.${term},phone.ilike.${term}`,
+        )
         .order("pickup_at", { ascending: false })
         .limit(15),
       supabaseAdmin
@@ -240,9 +271,7 @@ export const listAdminBookings = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("trip_status", data.status);
     if (data.search) {
       const term = `%${data.search}%`;
-      q = q.or(
-        `reservation_number.ilike.${term},full_name.ilike.${term},email.ilike.${term}`,
-      );
+      q = q.or(`reservation_number.ilike.${term},full_name.ilike.${term},email.ilike.${term}`);
     }
     const { data: rows, error } = await q;
     if (error) throw error;
@@ -382,9 +411,7 @@ export const addPricingHoliday = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("pricing_holidays")
-      .insert(data as never);
+    const { error } = await supabaseAdmin.from("pricing_holidays").insert(data as never);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -397,7 +424,10 @@ export const updatePricingHoliday = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         name: z.string().trim().min(1).max(120).optional(),
-        holiday_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        holiday_date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
         surcharge_pct: z.number().min(0).max(500).optional(),
         is_active: z.boolean().optional(),
         notes: z.string().trim().max(500).optional().nullable(),
@@ -419,16 +449,11 @@ export const updatePricingHoliday = createServerFn({ method: "POST" })
 /** Delete a pricing holiday. */
 export const deletePricingHoliday = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ id: z.string().uuid() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin
-      .from("pricing_holidays")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await supabaseAdmin.from("pricing_holidays").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -436,9 +461,7 @@ export const deletePricingHoliday = createServerFn({ method: "POST" })
 /** Confirmed / in-progress bookings for the admin calendar view. */
 export const listCalendarBookings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) =>
-    z.object({ start: z.string(), end: z.string() }).parse(data),
-  )
+  .inputValidator((data: unknown) => z.object({ start: z.string(), end: z.string() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -447,7 +470,13 @@ export const listCalendarBookings = createServerFn({ method: "POST" })
       .select(
         "id, reservation_number, full_name, pickup_at, estimated_end_at, trip_status, pickup_address, destination_address",
       )
-      .in("trip_status", ["confirmed", "driver_en_route", "driver_arrived", "picked_up", "pending_approval"])
+      .in("trip_status", [
+        "confirmed",
+        "driver_en_route",
+        "driver_arrived",
+        "picked_up",
+        "pending_approval",
+      ])
       .gte("pickup_at", data.start)
       .lte("pickup_at", data.end)
       .order("pickup_at", { ascending: true });
