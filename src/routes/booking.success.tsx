@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, ArrowRight, Loader2, Clock, Info, CreditCard, X } from "lucide-react";
 import { toast } from "sonner";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
@@ -31,6 +31,16 @@ function SuccessPage() {
   const { booking_id, session_id } = Route.useSearch();
   const cameFromStripe = Boolean(session_id);
 
+  // Give up waiting on the Stripe webhook after a while instead of spinning
+  // forever — e.g. checkout was abandoned, or the return URL arrived without a
+  // usable booking_id. Without this the page polls indefinitely.
+  const [verifyTimedOut, setVerifyTimedOut] = useState(false);
+  useEffect(() => {
+    if (!cameFromStripe) return;
+    const timer = setTimeout(() => setVerifyTimedOut(true), 25000);
+    return () => clearTimeout(timer);
+  }, [cameFromStripe]);
+
   const { data, isLoading } = useQuery({
     enabled: Boolean(booking_id),
     queryKey: ["booking-status", booking_id],
@@ -46,6 +56,7 @@ function SuccessPage() {
       if (s && ACTIVE_TRIP.includes(s)) return 10000;
       if (!cameFromStripe) return false;
       if (s === "confirmed") return false;
+      if (verifyTimedOut) return false;
       return 1500;
     },
     refetchIntervalInBackground: false,
@@ -79,9 +90,16 @@ function SuccessPage() {
   let icon = <Info className="h-8 w-8" />;
 
   if (isLoading || (!booking && cameFromStripe)) {
-    icon = <Loader2 className="h-8 w-8 animate-spin" />;
-    title = "Finalizing your booking";
-    body = "Verifying your payment — this only takes a moment.";
+    if (verifyTimedOut) {
+      icon = <Info className="h-8 w-8" />;
+      title = "Payment not completed";
+      body =
+        "We couldn't confirm a payment for this reservation — the checkout was closed before it finished, so nothing was charged. Open the payment link from your confirmation email to try again. If your card was charged, reload this page in a moment or call us and we'll sort it out.";
+    } else {
+      icon = <Loader2 className="h-8 w-8 animate-spin" />;
+      title = "Finalizing your booking";
+      body = "Verifying your payment — this only takes a moment.";
+    }
   } else if (status === "confirmed") {
     icon = <CheckCircle2 className="h-8 w-8" />;
     title = "Ride confirmed";

@@ -221,7 +221,9 @@ export const payTripBalance = createServerFn({ method: "POST" })
         ui_mode: "embedded_page",
         // Card only — disables Stripe Link.
         payment_method_types: ["card"],
-        return_url: `${data.returnUrl}?session_id={CHECKOUT_SESSION_ID}&booking_id=${(b as any).id}&balance=1`,
+        // Strip any existing query first, so the params are appended exactly
+        // once (see the same guard in payment.functions.ts).
+        return_url: `${data.returnUrl.split("?")[0]}?session_id={CHECKOUT_SESSION_ID}&booking_id=${(b as any).id}&balance=1`,
         customer_email: (b as any).email,
         metadata: {
           booking_id: (b as any).id,

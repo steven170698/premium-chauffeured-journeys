@@ -55,6 +55,12 @@ async function createSessionForBooking(
 ) {
   const stripe = createStripeClient(environment);
   const total = Number(booking.total);
+  // Callers pass either a bare page URL or one that already carries
+  // ?booking_id=…&session_id={CHECKOUT_SESSION_ID}. Drop any existing query so
+  // the params below are appended exactly once — otherwise the second "?" ends
+  // up inside the first param's value and booking_id is lost, leaving the
+  // success page stuck on "Finalizing your booking".
+  const returnBase = returnUrl.split("?")[0];
   const session = await stripe.checkout.sessions.create({
     line_items: [
       {
@@ -76,7 +82,7 @@ async function createSessionForBooking(
     // Card only — disables Stripe Link (the "Link" 1-click option that was
     // pre-filling a saved phone number). Apple Pay / Google Pay still work.
     payment_method_types: ["card"],
-    return_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
+    return_url: `${returnBase}?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
     customer_email: booking.email,
     payment_intent_data: {
       description: `Stevie Services — ${booking.reservation_number}`,
