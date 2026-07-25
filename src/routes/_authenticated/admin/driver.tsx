@@ -26,6 +26,7 @@ import {
   saveDriverNotes,
   recordPayment,
   issueRefund,
+  cancelRide,
   todayEarnings,
   getAvailability,
   setAvailability,
@@ -254,6 +255,46 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
     onError: (e: any) => toast.error(e?.message ?? "Failed"),
   });
 
+  // Cancel the ride outright — allowed at any point, including mid-trip. The
+  // server releases the card hold or refunds the payment as appropriate.
+  const cancelFn = useServerFn(cancelRide);
+  const cancelMut = useMutation({
+    mutationFn: (reason: string) =>
+      cancelFn({
+        data: {
+          bookingId: ride.id,
+          reason: reason || null,
+          environment: getStripeEnvironment(),
+        },
+      }),
+    onSuccess: (r: any) => {
+      if (r?.error) return toast.error(r.error);
+      toast.success(
+        r?.released
+          ? "Ride canceled — card hold released"
+          : r?.refunded > 0
+            ? `Ride canceled — $${Number(r.refunded).toFixed(2)} refunded`
+            : "Ride canceled",
+      );
+      if (r?.warning) toast.error(r.warning);
+      onChange();
+      qc.invalidateQueries({ queryKey: ["driver"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed"),
+  });
+
+  const askCancel = () => {
+    const paidNote =
+      Number(ride.amount_paid ?? 0) > 0
+        ? `\n\n$${Number(ride.amount_paid).toFixed(2)} has been charged and will be refunded in full.`
+        : ride.payment_status === "authorized"
+          ? "\n\nThe hold on the passenger's card will be released."
+          : "";
+    if (!window.confirm(`Cancel ride ${ride.reservation_number}?${paidNote}\n\nThe passenger will be notified by email.`)) return;
+    const reason = window.prompt("Reason for cancelling (shown to the passenger, optional):") ?? "";
+    cancelMut.mutate(reason.trim());
+  };
+
   const routeUrl = useMemo(() => {
     const params = new URLSearchParams({
       api: "1",
@@ -387,10 +428,21 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
                 <button
                   key={s.key}
                   onClick={() => {
+                    // Cancelling has to settle the money too (release the hold
+                    // or refund), so it goes through cancelRide — not a plain
+                    // status flip, which would strand the passenger's payment.
+                    if (s.key === "canceled") {
+                      askCancel();
+                      return;
+                    }
                     pendingRef.current = s.key;
                     statusMut.mutate({ status: s.key });
                   }}
-                  disabled={statusMut.isPending || ride.trip_status === s.key}
+                  disabled={
+                    statusMut.isPending ||
+                    cancelMut.isPending ||
+                    ride.trip_status === s.key
+                  }
                   className={`rounded-lg border px-3 py-3 text-sm font-medium transition ${
                     ride.trip_status === s.key
                       ? "border-gold bg-gold text-black"

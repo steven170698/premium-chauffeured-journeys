@@ -499,6 +499,38 @@ export function paymentAuthorizedEmail(d: BookingEmailData): RenderedEmail {
   };
 }
 
+/** The driver cancelled the ride. `moneyLine` states exactly what happened to the money. */
+export function rideCanceledEmail(
+  d: BookingEmailData,
+  opts: { moneyLine: string; reason?: string | null },
+): RenderedEmail {
+  const subject = `Your ride was canceled — ${d.reservationNumber}`;
+  const reasonLine = opts.reason ? ` Reason: ${opts.reason}.` : "";
+  return {
+    subject,
+    html: layout({
+      preheader: `${d.reservationNumber} was canceled. ${opts.moneyLine}`,
+      badge: statusBadge("Canceled", "red"),
+      heading: "Your ride was canceled",
+      intro: `We're sorry, ${d.customerName.split(" ")[0]} — we've had to cancel this ride.${reasonLine} <strong>${opts.moneyLine}</strong> If you still need transport, you're welcome to book again and we'll do our best to cover it.`,
+      panel: tripPanel(d, [{ label: "Status", value: "Canceled" }]),
+      cta: { label: "Book another ride", url: `${BRAND.siteUrl}/book` },
+    }),
+    text: textFor([
+      `YOUR RIDE WAS CANCELED — ${d.reservationNumber}`,
+      ``,
+      `We're sorry, ${d.customerName} — we've had to cancel this ride.${reasonLine}`,
+      opts.moneyLine,
+      ``,
+      `Pickup: ${d.pickupAddress}`,
+      `Destination: ${d.destinationAddress}`,
+      `Pickup time: ${formatDateTime(d.pickupAt)}`,
+      ``,
+      `Book another ride: ${BRAND.siteUrl}/book`,
+    ]),
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Admin: contact / support message                                    */
 /* ------------------------------------------------------------------ */

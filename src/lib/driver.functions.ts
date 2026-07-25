@@ -169,6 +169,143 @@ export const recordPayment = createServerFn({ method: "POST" })
     return { ok: true, amount_paid: paid, balance_due: balance, payment_status };
   });
 
+/**
+ * Driver cancels a ride — allowed from any active status, including mid-trip.
+ *
+ * Money is settled according to where the payment actually got to:
+ *   - authorised but not captured → cancel the intent, releasing the hold
+ *   - already captured           → refund what was paid (full by default)
+ *   - never paid                 → nothing to undo
+ *
+ * `declined_at` / `decline_reason` double as the cancellation record; the
+ * `canceled` trip_status is what distinguishes this from a decline.
+ */
+export const cancelRide = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        bookingId: z.string().uuid(),
+        reason: z.string().trim().max(500).optional().nullable(),
+        environment: z.enum(["sandbox", "live"]),
+        // Set false to cancel a captured ride without returning the money.
+        refund: z.boolean().optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { createStripeClient, getStripeErrorMessage } = await import("@/lib/stripe.server");
+
+    const { data: b, error: fe } = await supabaseAdmin
+      .from("bookings")
+      .select(BOOKING_COLS)
+      .eq("id", data.bookingId)
+      .maybeSingle();
+    if (fe || !b) return { error: "Booking not found" };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const booking = b as any;
+    if (["canceled", "declined"].includes(booking.trip_status)) {
+      return { error: "This ride is already canceled." };
+    }
+
+    const pi = booking.stripe_payment_intent as string | null;
+    const paid = Number(booking.amount_paid ?? 0);
+    const total = Number(booking.total ?? 0);
+    const wantsRefund = data.refund !== false;
+
+    let released = false;
+    let refunded = 0;
+    let paymentStatus: string = booking.payment_status;
+    let moneyNote: string | null = null;
+
+    if (pi && booking.payment_status === "authorized") {
+      // Held, never charged — cancelling the intent frees the money immediately.
+      try {
+        await createStripeClient(data.environment).paymentIntents.cancel(pi);
+        released = true;
+        paymentStatus = "unpaid";
+      } catch (e) {
+        moneyNote = `Could not release the card hold: ${getStripeErrorMessage(e)}`;
+        console.error("cancelRide: release hold failed:", moneyNote);
+      }
+    } else if (pi && wantsRefund && paid > 0) {
+      // Already captured — give it back.
+      try {
+        const refund = await createStripeClient(data.environment).refunds.create({
+          payment_intent: pi,
+        });
+        refunded = (refund.amount ?? 0) / 100;
+        const remaining = Math.max(0, +(paid - refunded).toFixed(2));
+        paymentStatus = remaining <= 0 ? "refunded" : "partially_refunded";
+      } catch (e) {
+        moneyNote = `Could not refund the payment: ${getStripeErrorMessage(e)}`;
+        console.error("cancelRide: refund failed:", moneyNote);
+      }
+    }
+
+    const newPaid = released ? 0 : Math.max(0, +(paid - refunded).toFixed(2));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabaseAdmin.from("bookings") as any)
+      .update({
+        trip_status: "canceled",
+        payment_status: paymentStatus,
+        amount_paid: newPaid,
+        balance_due: released || newPaid <= 0 ? 0 : Math.max(0, total - newPaid),
+        declined_at: new Date().toISOString(),
+        declined_by: context.userId,
+        decline_reason:
+          data.reason?.trim() || "The driver had to cancel this ride.",
+      })
+      .eq("id", data.bookingId);
+    if (error) return { error: error.message };
+
+    // Tell the passenger (best-effort — never blocks the cancellation).
+    try {
+      const { sendRendered } = await import("@/lib/email.server");
+      const { rideCanceledEmail } = await import("@/lib/email-templates");
+      const { createNotification } = await import("@/lib/notifications.server");
+      const moneyLine = released
+        ? "The hold on your card has been released — you were never charged."
+        : refunded > 0
+          ? `We've refunded ${refunded.toFixed(2)} to your original payment method.`
+          : "No payment was taken for this ride.";
+      await Promise.allSettled([
+        sendRendered(
+          booking.email,
+          rideCanceledEmail(
+            {
+              bookingId: booking.id,
+              reservationNumber: booking.reservation_number,
+              customerName: booking.full_name,
+              pickupAddress: booking.pickup_address,
+              destinationAddress: booking.destination_address,
+              pickupAt: booking.pickup_at,
+              approvedFare: total,
+            },
+            { moneyLine, reason: data.reason?.trim() || null },
+          ),
+          { eventType: "ride_canceled", bookingId: booking.id, userId: booking.user_id },
+        ),
+        createNotification({
+          userId: booking.user_id,
+          audience: "customer",
+          bookingId: booking.id,
+          type: "ride_canceled",
+          title: "Your ride was canceled",
+          body: `${booking.reservation_number} was canceled. ${moneyLine}`,
+          link: `/booking/success?booking_id=${booking.id}`,
+        }),
+      ]);
+    } catch (e) {
+      console.error("cancelRide notify (non-fatal):", e instanceof Error ? e.message : e);
+    }
+
+    return { ok: true, released, refunded, warning: moneyNote };
+  });
+
 /** Issue a Stripe refund (partial or full) against a booking's payment intent. */
 export const issueRefund = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
