@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       admin_settings: {
         Row: {
+          airport_dropoff_fee: number
           airport_surcharge: number
           allow_off_session_charges: boolean
           approval_deadline_minutes: number
@@ -66,6 +67,7 @@ export type Database = {
           weekend_surcharge_pct: number
         }
         Insert: {
+          airport_dropoff_fee?: number
           airport_surcharge?: number
           allow_off_session_charges?: boolean
           approval_deadline_minutes?: number
@@ -116,6 +118,7 @@ export type Database = {
           weekend_surcharge_pct?: number
         }
         Update: {
+          airport_dropoff_fee?: number
           airport_surcharge?: number
           allow_off_session_charges?: boolean
           approval_deadline_minutes?: number
