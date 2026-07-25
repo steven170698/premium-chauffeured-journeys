@@ -149,9 +149,12 @@ export const requestBooking = createServerFn({ method: "POST" })
         Date.now() + approvalWindowMin * 60 * 1000,
       );
 
-      // Skip driver review only when the admin explicitly opted in.
+      // Go straight to payment unless the admin explicitly wants to vet requests
+      // first. Payment only authorises the card — the ride is still accepted (and
+      // the money captured) by the admin afterwards, so an up-front approval step
+      // is redundant when require_approval is off.
       const initialStatus =
-        !requireApproval && autoConfirm ? "awaiting_payment" : "pending_approval";
+        !requireApproval || autoConfirm ? "awaiting_payment" : "pending_approval";
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: booking, error } = await (supabaseAdmin.from("bookings") as any)

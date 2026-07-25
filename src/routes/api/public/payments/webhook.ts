@@ -89,6 +89,11 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
                   balance_due: paid,
                   stripe_payment_intent: stripePi,
                   trip_status: "pending_approval",
+                  // Clear the approval deadline: mark_abandoned_bookings() flips
+                  // overdue pending_approval rows to "declined" in pure SQL, which
+                  // cannot release a Stripe hold. A paid booking must never be
+                  // swept — the admin releases it via declineBooking instead.
+                  approval_deadline_at: null,
                 })
                 .eq("id", bookingId)
                 .eq("trip_status", "awaiting_payment");
