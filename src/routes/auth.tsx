@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
-import { Mail, Lock, User, Phone, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Phone, Loader2, Eye, EyeOff } from "lucide-react";
 import stevieLogo from "@/assets/logo.png";
 
 export const Route = createFileRoute("/auth")({
@@ -157,17 +157,31 @@ function AuthPage() {
 function IconInput({
   icon, placeholder, value, onChange, type = "text", required,
 }: { icon: React.ReactNode; placeholder: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean }) {
+  // Password fields get an eye toggle so people can check what they typed.
+  const isPassword = type === "password";
+  const [revealed, setRevealed] = useState(false);
   return (
     <label className="flex items-center gap-3 rounded-xl border border-border/70 bg-secondary/40 px-4 py-3 focus-within:border-gold focus-within:ring-2 focus-within:ring-gold/30 transition-colors">
       <span className="text-muted-foreground">{icon}</span>
       <input
-        type={type}
+        type={isPassword && revealed ? "text" : type}
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
       />
+      {isPassword && (
+        <button
+          type="button"
+          onClick={() => setRevealed((v) => !v)}
+          aria-label={revealed ? "Hide password" : "Show password"}
+          title={revealed ? "Hide password" : "Show password"}
+          className="shrink-0 text-muted-foreground transition-colors hover:text-gold"
+        >
+          {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      )}
     </label>
   );
 }

@@ -462,6 +462,43 @@ export function bookingConfirmedEmail(d: BookingEmailData): RenderedEmail {
   };
 }
 
+/**
+ * Card authorised but NOT yet charged — the ride is waiting on the driver to
+ * accept. Money only moves once the ride is accepted (capture).
+ */
+export function paymentAuthorizedEmail(d: BookingEmailData): RenderedEmail {
+  const amount = formatMoney(d.amountPaid ?? d.approvedFare);
+  const subject = `Payment on hold — we're confirming ${d.reservationNumber}`;
+  return {
+    subject,
+    html: layout({
+      preheader: `Your card is on hold for ${d.reservationNumber}. You have not been charged yet.`,
+      badge: statusBadge("Awaiting confirmation", "gold"),
+      heading: "Payment received — confirming your ride",
+      intro: `Thanks, ${d.customerName.split(" ")[0]}! We've placed a hold on your card for ${amount} — <strong>you have not been charged yet</strong>. We'll confirm your ride shortly, and only then is the payment taken. If we can't take the ride, the hold is released and you keep your money.`,
+      panel: tripPanel(d, [
+        { label: "Amount on hold", value: amount },
+        { label: "Payment status", value: "Authorised — not yet charged" },
+        { label: "Status", value: "Awaiting confirmation" },
+      ]),
+      cta: { label: "View your reservation", url: manageUrl(d.bookingId) },
+    }),
+    text: textFor([
+      `PAYMENT ON HOLD — ${d.reservationNumber}`,
+      ``,
+      `Thanks, ${d.customerName}! We've placed a hold on your card for ${amount}.`,
+      `YOU HAVE NOT BEEN CHARGED YET. Payment is only taken once we confirm the ride.`,
+      `If we can't take it, the hold is released.`,
+      ``,
+      `Pickup: ${d.pickupAddress}`,
+      `Destination: ${d.destinationAddress}`,
+      `Pickup time: ${formatDateTime(d.pickupAt)}`,
+      ``,
+      `View your reservation: ${manageUrl(d.bookingId)}`,
+    ]),
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Admin: contact / support message                                    */
 /* ------------------------------------------------------------------ */

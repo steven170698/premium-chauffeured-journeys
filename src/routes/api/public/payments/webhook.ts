@@ -76,14 +76,19 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               new Date(booking.payment_deadline_at) >= new Date();
 
             if (stillAwaiting && withinWindow) {
-              const { error } = await supabaseAdmin
-                .from("bookings")
+              // Payments are authorised, not captured (capture_method: manual).
+              // So a completed checkout means the card is HELD — the ride now
+              // waits for the admin to accept, which captures the money.
+              // Cast: "authorized" was added to the payment_status enum by
+              // migration 20260725090000; types.ts predates it.
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const { error } = await (supabaseAdmin.from("bookings") as any)
                 .update({
-                  payment_status: "paid",
-                  amount_paid: paid,
-                  balance_due: 0,
+                  payment_status: "authorized",
+                  amount_paid: 0,
+                  balance_due: paid,
                   stripe_payment_intent: stripePi,
-                  trip_status: "confirmed",
+                  trip_status: "pending_approval",
                 })
                 .eq("id", bookingId)
                 .eq("trip_status", "awaiting_payment");
@@ -95,7 +100,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const b = booking as any;
                   const { sendRendered } = await import("@/lib/email.server");
-                  const { bookingConfirmedEmail } = await import("@/lib/email-templates");
+                  const { paymentAuthorizedEmail } = await import("@/lib/email-templates");
                   const { createNotification } = await import("@/lib/notifications.server");
                   const emailData = {
                     bookingId,
@@ -108,8 +113,8 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
                     approvedFare: Number(b.total),
                   };
                   await Promise.allSettled([
-                    sendRendered(b.email, bookingConfirmedEmail(emailData), {
-                      eventType: "booking_confirmed",
+                    sendRendered(b.email, paymentAuthorizedEmail(emailData), {
+                      eventType: "payment_authorized",
                       bookingId,
                       userId: b.user_id,
                     }),
@@ -117,18 +122,18 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
                       userId: b.user_id,
                       audience: "customer",
                       bookingId,
-                      type: "booking_confirmed",
-                      title: "Reservation confirmed",
-                      body: `${b.reservation_number} is confirmed — payment received.`,
-                      link: `/dashboard?booking=${bookingId}`,
+                      type: "payment_authorized",
+                      title: "Payment on hold",
+                      body: `${b.reservation_number}: card authorised — you're not charged until we confirm the ride.`,
+                      link: `/booking/success?booking_id=${bookingId}`,
                     }),
                     createNotification({
                       userId: null,
                       audience: "admin",
                       bookingId,
-                      type: "payment_received",
-                      title: "Payment received",
-                      body: `${b.reservation_number} confirmed.`,
+                      type: "payment_authorized",
+                      title: "Ride paid — accept to collect",
+                      body: `${b.reservation_number}: $${paid.toFixed(2)} authorised. Accept the ride to capture the payment.`,
                       link: `/admin/bookings?booking=${bookingId}`,
                     }),
                   ]);

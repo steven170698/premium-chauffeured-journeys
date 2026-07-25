@@ -86,6 +86,11 @@ async function createSessionForBooking(
     customer_email: booking.email,
     payment_intent_data: {
       description: `Stevie Services — ${booking.reservation_number}`,
+      // Authorize only — the card is held, not charged. The money moves when
+      // the admin accepts the ride (approveBooking captures the intent), and
+      // the hold is released if the ride is declined. NOTE: Stripe voids an
+      // uncaptured authorization after ~7 days.
+      capture_method: "manual",
     },
     metadata: {
       booking_id: booking.id,
@@ -121,8 +126,72 @@ export const approveBooking = createServerFn({ method: "POST" })
       if (booking.trip_status !== "pending_approval") {
         return { error: `Cannot approve booking in status "${booking.trip_status}".` };
       }
-      // The payment link never expires — no payment deadline is set, so the
-      // customer can pay whenever they're ready.
+
+      // Normal path: the passenger already paid, so the card is authorised and
+      // waiting. Accepting the ride captures it — this is the point the money
+      // actually leaves their account.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const heldIntent = (booking as any).stripe_payment_intent as string | null;
+      if (heldIntent && (booking as any).payment_status === "authorized") {
+        const stripe = createStripeClient(data.environment as StripeEnv);
+        const captured = await stripe.paymentIntents.capture(heldIntent);
+        const paid = (captured.amount_received ?? 0) / 100;
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error } = await (supabaseAdmin.from("bookings") as any)
+          .update({
+            trip_status: "confirmed",
+            payment_status: "paid",
+            amount_paid: paid,
+            balance_due: 0,
+            approved_at: new Date().toISOString(),
+            approved_by: context.userId,
+            payment_deadline_at: null,
+          })
+          .eq("id", data.bookingId)
+          .eq("trip_status", "pending_approval");
+        if (error) return { error: error.message };
+
+        // Confirmation email + notifications (best-effort).
+        try {
+          const { sendRendered } = await import("@/lib/email.server");
+          const { bookingConfirmedEmail } = await import("@/lib/email-templates");
+          const { createNotification } = await import("@/lib/notifications.server");
+          await Promise.allSettled([
+            sendRendered(
+              booking.email,
+              bookingConfirmedEmail({
+                bookingId: booking.id,
+                reservationNumber: booking.reservation_number,
+                customerName: booking.full_name,
+                pickupAddress: booking.pickup_address,
+                destinationAddress: booking.destination_address,
+                pickupAt: booking.pickup_at,
+                amountPaid: paid,
+                approvedFare: Number(booking.total),
+              }),
+              { eventType: "booking_confirmed", bookingId: booking.id, userId: booking.user_id },
+            ),
+            createNotification({
+              userId: booking.user_id,
+              audience: "customer",
+              bookingId: booking.id,
+              type: "booking_confirmed",
+              title: "Reservation confirmed",
+              body: `${booking.reservation_number} is confirmed — payment received.`,
+              link: `/booking/success?booking_id=${booking.id}`,
+            }),
+          ]);
+        } catch (e) {
+          console.error("approve/capture notify (non-fatal):", e instanceof Error ? e.message : e);
+        }
+
+        return { ok: true, captured: true, paymentDeadlineAt: null, clientSecret: "" };
+      }
+
+      // Fallback (older bookings approved before payment): send a pay link, as
+      // before. The payment link never expires — no payment deadline is set.
       const session = await createSessionForBooking(
         booking as Parameters<typeof createSessionForBooking>[0],
         data.environment as StripeEnv,
@@ -199,6 +268,7 @@ export const declineBooking = createServerFn({ method: "POST" })
       .object({
         bookingId: z.string().uuid(),
         reason: z.string().trim().max(500).optional().nullable(),
+        environment: z.enum(["sandbox", "live"]).optional(),
       })
       .parse(data),
   )
@@ -211,10 +281,26 @@ export const declineBooking = createServerFn({ method: "POST" })
     // Load booking details for the email before the status flips (best-effort).
     const booking = await loadBooking(data.bookingId).catch(() => null);
 
+    // Release the authorisation so the passenger's money is not left on hold.
+    // Best-effort: a failure here must not block the decline.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const heldIntent = (booking as any)?.stripe_payment_intent as string | null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (heldIntent && (booking as any)?.payment_status === "authorized") {
+      try {
+        const env = (data.environment ?? "live") as StripeEnv;
+        await createStripeClient(env).paymentIntents.cancel(heldIntent);
+      } catch (e) {
+        console.error("decline: releasing hold failed:", getStripeErrorMessage(e));
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabaseAdmin.from("bookings") as any)
       .update({
         trip_status: "declined",
+        // Declined bookings are never captured, so nothing is owed or held.
+        payment_status: "unpaid",
         declined_at: new Date().toISOString(),
         declined_by: context.userId,
         decline_reason: reason,

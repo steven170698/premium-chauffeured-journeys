@@ -120,7 +120,8 @@ function AdminBookings() {
 
   const declineMut = useMutation({
     mutationFn: (v: { bookingId: string; reason: string }) =>
-      declineBooking({ data: v }),
+      // environment is needed so the card hold is released in the right Stripe env
+      declineBooking({ data: { ...v, environment: getStripeEnvironment() } }),
     onSuccess: () => {
       toast.success("Request declined — customer notified");
       invalidate();
