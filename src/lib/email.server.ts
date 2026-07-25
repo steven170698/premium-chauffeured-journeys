@@ -80,7 +80,11 @@ async function logAttempt(input: SendEmailInput, result: SendEmailResult): Promi
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const resend = client();
   if (!resend) {
-    const result: SendEmailResult = { ok: false, skipped: true, error: "RESEND_API_KEY not configured" };
+    const result: SendEmailResult = {
+      ok: false,
+      skipped: true,
+      error: "RESEND_API_KEY not configured",
+    };
     console.warn(`[email] skipped "${input.subject}" — RESEND_API_KEY not set`);
     await logAttempt(input, result);
     return result;
@@ -102,7 +106,10 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     await logAttempt(input, result);
     return result;
   } catch (e) {
-    const result: SendEmailResult = { ok: false, error: e instanceof Error ? e.message : "send failed" };
+    const result: SendEmailResult = {
+      ok: false,
+      error: e instanceof Error ? e.message : "send failed",
+    };
     console.error(`[email] send threw "${input.subject}":`, result.error);
     await logAttempt(input, result);
     return result;

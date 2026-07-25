@@ -9,11 +9,7 @@
  * SECURITY: server-only. Import dynamically inside server handlers.
  */
 
-export type TripStepStatus =
-  | "driver_en_route"
-  | "driver_arrived"
-  | "picked_up"
-  | "completed";
+export type TripStepStatus = "driver_en_route" | "driver_arrived" | "picked_up" | "completed";
 
 const STEP_TITLES: Record<TripStepStatus, string> = {
   driver_en_route: "Your driver is on the way",

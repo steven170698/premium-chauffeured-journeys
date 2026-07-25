@@ -19,7 +19,6 @@ export const Route = createFileRoute("/_authenticated/admin/bookings")({
   component: AdminBookings,
 });
 
-
 type StatusFilter =
   | "all"
   | "pending_approval"
@@ -74,7 +73,6 @@ function AdminBookings() {
     }, 250);
     return () => clearTimeout(id);
   }, [search, status, navigate]);
-
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["admin-bookings", status, search],
@@ -142,7 +140,6 @@ function AdminBookings() {
     "payment_expired",
     "canceled",
   ];
-
 
   // Shared action buttons (Approve/Decline + status transitions) so the desktop
   // table and the mobile cards render identical controls.
@@ -236,16 +233,28 @@ function AdminBookings() {
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Loading…</td></tr>
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  Loading…
+                </td>
+              </tr>
             )}
             {!isLoading && rows.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No bookings found.</td></tr>
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                  No bookings found.
+                </td>
+              </tr>
             )}
             {rows.map((b: any) => (
               <tr key={b.id} className="border-t border-border/60 align-top">
                 <td className="px-4 py-3">
-                  <div className="font-mono text-xs uppercase tracking-widest text-gold">{b.reservation_number}</div>
-                  <div className="text-[10px] text-muted-foreground">{new Date(b.created_at).toLocaleDateString()}</div>
+                  <div className="font-mono text-xs uppercase tracking-widest text-gold">
+                    {b.reservation_number}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    {new Date(b.created_at).toLocaleDateString()}
+                  </div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="font-medium">{b.full_name}</div>
@@ -253,8 +262,14 @@ function AdminBookings() {
                   <div className="text-xs text-muted-foreground">{b.phone}</div>
                 </td>
                 <td className="px-4 py-3 max-w-[260px]">
-                  <div className="flex items-start gap-1.5 text-xs"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-gold" />{b.pickup_address}</div>
-                  <div className="mt-1 flex items-start gap-1.5 text-xs"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />{b.destination_address}</div>
+                  <div className="flex items-start gap-1.5 text-xs">
+                    <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-gold" />
+                    {b.pickup_address}
+                  </div>
+                  <div className="mt-1 flex items-start gap-1.5 text-xs">
+                    <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                    {b.destination_address}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-xs">{new Date(b.pickup_at).toLocaleString()}</td>
                 <td className="px-4 py-3">
@@ -278,18 +293,29 @@ function AdminBookings() {
       {/* Mobile: cards — Approve/Decline are always on screen */}
       <div className="space-y-3 md:hidden">
         {isLoading && (
-          <div className="rounded-2xl border border-border/60 bg-card/60 px-4 py-8 text-center text-muted-foreground">Loading…</div>
+          <div className="rounded-2xl border border-border/60 bg-card/60 px-4 py-8 text-center text-muted-foreground">
+            Loading…
+          </div>
         )}
         {!isLoading && rows.length === 0 && (
-          <div className="rounded-2xl border border-border/60 bg-card/60 px-4 py-8 text-center text-muted-foreground">No bookings found.</div>
+          <div className="rounded-2xl border border-border/60 bg-card/60 px-4 py-8 text-center text-muted-foreground">
+            No bookings found.
+          </div>
         )}
         {rows.map((b: any) => (
           <div key={b.id} className="rounded-2xl border border-border/60 bg-card/60 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-mono text-xs uppercase tracking-widest text-gold">{b.reservation_number}</div>
+                <div className="font-mono text-xs uppercase tracking-widest text-gold">
+                  {b.reservation_number}
+                </div>
                 <div className="mt-0.5 font-medium">{b.full_name}</div>
-                <a href={`tel:${b.phone}`} className="text-xs text-muted-foreground underline-offset-2 hover:underline">{b.phone}</a>
+                <a
+                  href={`tel:${b.phone}`}
+                  className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  {b.phone}
+                </a>
               </div>
               <div className="shrink-0 text-right">
                 <div className="font-display text-lg">${Number(b.total).toFixed(2)}</div>
@@ -299,8 +325,14 @@ function AdminBookings() {
               </div>
             </div>
             <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-              <div className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-gold" />{b.pickup_address}</div>
-              <div className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />{b.destination_address}</div>
+              <div className="flex items-start gap-1.5">
+                <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-gold" />
+                {b.pickup_address}
+              </div>
+              <div className="flex items-start gap-1.5">
+                <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
+                {b.destination_address}
+              </div>
               <div className="pt-0.5">{new Date(b.pickup_at).toLocaleString()}</div>
             </div>
             <div className="mt-3">{renderActions(b)}</div>

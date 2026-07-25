@@ -46,9 +46,15 @@ function AdminCalendar() {
         <div>
           <div className="font-display text-lg">
             {anchor.toLocaleDateString(undefined, { month: "long", day: "numeric" })} —{" "}
-            {new Date(end.getTime() - 86_400_000).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+            {new Date(end.getTime() - 86_400_000).toLocaleDateString(undefined, {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
           </div>
-          <div className="text-xs text-muted-foreground">Week view of confirmed & pending rides.</div>
+          <div className="text-xs text-muted-foreground">
+            Week view of confirmed & pending rides.
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -87,7 +93,9 @@ function AdminCalendar() {
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                   {d.toLocaleDateString(undefined, { weekday: "short" })}
                 </div>
-                <div className={`text-lg font-display ${isToday ? "text-gold" : ""}`}>{d.getDate()}</div>
+                <div className={`text-lg font-display ${isToday ? "text-gold" : ""}`}>
+                  {d.getDate()}
+                </div>
               </div>
               <div className="space-y-2">
                 {dayBookings.length === 0 && (
@@ -102,7 +110,10 @@ function AdminCalendar() {
                     title={`${b.pickup_address} → ${b.destination_address}`}
                   >
                     <div className="font-mono text-[10px] uppercase tracking-widest text-gold">
-                      {new Date(b.pickup_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(b.pickup_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </div>
                     <div className="mt-0.5 truncate font-medium">{b.full_name}</div>
                     <div className="text-[10px] uppercase tracking-widest text-muted-foreground">

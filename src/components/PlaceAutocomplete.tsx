@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  placeAutocomplete,
-  placeDetails,
-  type PlaceSuggestion,
-} from "@/lib/geo.functions";
+import { placeAutocomplete, placeDetails, type PlaceSuggestion } from "@/lib/geo.functions";
 import type { SelectedPlace } from "@/lib/geo.functions";
 
 type Props = {
@@ -104,9 +100,7 @@ export function PlaceAutocomplete({
       />
       {open && (loading || suggestions.length > 0) && (
         <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-border/70 bg-card shadow-xl">
-          {loading && (
-            <div className="px-4 py-3 text-xs text-muted-foreground">Searching…</div>
-          )}
+          {loading && <div className="px-4 py-3 text-xs text-muted-foreground">Searching…</div>}
           {suggestions.map((s) => (
             <button
               key={s.placeId}

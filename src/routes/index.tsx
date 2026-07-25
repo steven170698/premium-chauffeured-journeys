@@ -40,11 +40,31 @@ export const Route = createFileRoute("/")({
 });
 
 const services = [
-  { icon: Plane, title: "Airport Transportation", desc: "On-time transfers to JFK, LGA, EWR and beyond. Flight tracking included." },
-  { icon: MapPin, title: "Local Transportation", desc: "City rides across NYC boroughs and New Jersey with a professional touch." },
-  { icon: Building2, title: "Business Transportation", desc: "Executive travel, roadshows, and client transport with discretion." },
-  { icon: CalendarRange, title: "Event Transportation", desc: "Weddings, galas, concerts — arrive in comfort and style." },
-  { icon: RouteIcon, title: "Long Distance Trips", desc: "Intercity travel throughout the Northeast, priced transparently." },
+  {
+    icon: Plane,
+    title: "Airport Transportation",
+    desc: "On-time transfers to JFK, LGA, EWR and beyond. Flight tracking included.",
+  },
+  {
+    icon: MapPin,
+    title: "Local Transportation",
+    desc: "City rides across NYC boroughs and New Jersey with a professional touch.",
+  },
+  {
+    icon: Building2,
+    title: "Business Transportation",
+    desc: "Executive travel, roadshows, and client transport with discretion.",
+  },
+  {
+    icon: CalendarRange,
+    title: "Event Transportation",
+    desc: "Weddings, galas, concerts — arrive in comfort and style.",
+  },
+  {
+    icon: RouteIcon,
+    title: "Long Distance Trips",
+    desc: "Intercity travel throughout the Northeast, priced transparently.",
+  },
 ];
 
 const values = [
@@ -56,17 +76,46 @@ const values = [
 ];
 
 const testimonials = [
-  { name: "Marcus H.", role: "Investment Banker", quote: "The most consistent car service I've used in NYC. Stevie makes 5:30 a.m. flights feel civilized." },
-  { name: "Priya S.", role: "Event Planner", quote: "Immaculate presentation. My VIP clients ask for him specifically now — every single time." },
-  { name: "Daniel R.", role: "Tech Executive", quote: "Booked last minute at midnight — car was outside in 12 minutes. Absolute pro." },
+  {
+    name: "Marcus H.",
+    role: "Investment Banker",
+    quote:
+      "The most consistent car service I've used in NYC. Stevie makes 5:30 a.m. flights feel civilized.",
+  },
+  {
+    name: "Priya S.",
+    role: "Event Planner",
+    quote:
+      "Immaculate presentation. My VIP clients ask for him specifically now — every single time.",
+  },
+  {
+    name: "Daniel R.",
+    role: "Tech Executive",
+    quote: "Booked last minute at midnight — car was outside in 12 minutes. Absolute pro.",
+  },
 ];
 
 const faqs = [
-  { q: "How do I get an instant quote?", a: "Enter your pickup and destination on the Book page. Our system calculates driving distance, time, and estimated fare in seconds using live routing data." },
-  { q: "What's included in the fare?", a: "Base fare, mileage, driving time, booking fee, applicable airport or extra-stop fees, and estimated tolls. Waiting time, parking, and route changes may adjust the final fare." },
-  { q: "Can I pay a deposit instead of the full amount?", a: "Yes. By default we accept a 25% deposit to hold your reservation. You can also pay in full at checkout." },
-  { q: "What's your cancellation policy?", a: "Free cancellation with sufficient advance notice. Details are shown at checkout and confirmed by email." },
-  { q: "Do you serve airports?", a: "Yes — JFK, LGA, EWR, and Teterboro, with flight tracking so we adjust to your arrival time automatically." },
+  {
+    q: "How do I get an instant quote?",
+    a: "Enter your pickup and destination on the Book page. Our system calculates driving distance, time, and estimated fare in seconds using live routing data.",
+  },
+  {
+    q: "What's included in the fare?",
+    a: "Base fare, mileage, driving time, booking fee, applicable airport or extra-stop fees, and estimated tolls. Waiting time, parking, and route changes may adjust the final fare.",
+  },
+  {
+    q: "Can I pay a deposit instead of the full amount?",
+    a: "Yes. By default we accept a 25% deposit to hold your reservation. You can also pay in full at checkout.",
+  },
+  {
+    q: "What's your cancellation policy?",
+    a: "Free cancellation with sufficient advance notice. Details are shown at checkout and confirmed by email.",
+  },
+  {
+    q: "Do you serve airports?",
+    a: "Yes — JFK, LGA, EWR, and Teterboro, with flight tracking so we adjust to your arrival time automatically.",
+  },
 ];
 
 function HomePage() {
@@ -86,7 +135,11 @@ function Hero() {
   return (
     <section className="relative isolate overflow-hidden">
       <div className="absolute inset-0 -z-10">
-        <img src={heroCar} alt="Luxury chauffeur car at night in New York" className="h-full w-full object-cover opacity-45" />
+        <img
+          src={heroCar}
+          alt="Luxury chauffeur car at night in New York"
+          className="h-full w-full object-cover opacity-45"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/60 to-background" />
         <div className="absolute inset-0 bg-radial-gold" />
       </div>
@@ -103,8 +156,8 @@ function Hero() {
         </h1>
 
         <p className="mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg animate-fade-up">
-          A private chauffeur service built around punctuality, discretion, and detail.
-          Book in under a minute — pay online, receive instant confirmation.
+          A private chauffeur service built around punctuality, discretion, and detail. Book in
+          under a minute — pay online, receive instant confirmation.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row animate-fade-up">
@@ -124,7 +177,10 @@ function Hero() {
             { k: "100%", v: "Insured" },
             { k: "★ 5.0", v: "Client Rating" },
           ].map((s) => (
-            <div key={s.v} className="rounded-2xl border border-border/60 bg-card/40 px-5 py-4 backdrop-blur">
+            <div
+              key={s.v}
+              className="rounded-2xl border border-border/60 bg-card/40 px-5 py-4 backdrop-blur"
+            >
               <div className="font-display text-2xl font-semibold text-gold">{s.k}</div>
               <div className="text-xs uppercase tracking-widest text-muted-foreground">{s.v}</div>
             </div>
@@ -180,7 +236,10 @@ function WhyChooseUs() {
         <SectionHeader eyebrow="Why Choose Us" title="Five reasons clients stay" />
         <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {values.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="rounded-2xl border border-border/60 bg-card/60 p-6 text-center">
+            <div
+              key={title}
+              className="rounded-2xl border border-border/60 bg-card/60 p-6 text-center"
+            >
               <div className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-gold-gradient text-gold-foreground shadow-gold-glow">
                 <Icon className="h-5 w-5" />
               </div>
@@ -200,21 +259,30 @@ function Testimonials() {
     queryFn: () => listApprovedReviews(),
     staleTime: 60_000,
   });
-  const items = reviews.length > 0
-    ? reviews.map((r) => ({
-        name: "Verified rider",
-        role: new Date(r.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" }),
-        quote: r.comment ?? "",
-        rating: r.rating,
-      })).filter((r) => r.quote)
-    : testimonials.map((t) => ({ ...t, rating: 5 }));
+  const items =
+    reviews.length > 0
+      ? reviews
+          .map((r) => ({
+            name: "Verified rider",
+            role: new Date(r.created_at).toLocaleDateString(undefined, {
+              month: "long",
+              year: "numeric",
+            }),
+            quote: r.comment ?? "",
+            rating: r.rating,
+          }))
+          .filter((r) => r.quote)
+      : testimonials.map((t) => ({ ...t, rating: 5 }));
   if (items.length === 0) return null;
   return (
     <section className="mx-auto max-w-7xl px-6 py-24">
       <SectionHeader eyebrow="Testimonials" title="Trusted by discerning riders" />
       <div className="mt-14 grid gap-6 md:grid-cols-3">
         {items.slice(0, 6).map((t, i) => (
-          <figure key={i} className="flex flex-col rounded-3xl border border-border/60 bg-card/60 p-7">
+          <figure
+            key={i}
+            className="flex flex-col rounded-3xl border border-border/60 bg-card/60 p-7"
+          >
             <div className="flex gap-1 text-gold">
               {Array.from({ length: t.rating }).map((_, j) => (
                 <Star key={j} className="h-4 w-4 fill-current" />
@@ -244,13 +312,18 @@ function FAQ() {
           {faqs.map((f, i) => {
             const isOpen = open === i;
             return (
-              <div key={f.q} className="overflow-hidden rounded-2xl border border-border/60 bg-card/60">
+              <div
+                key={f.q}
+                className="overflow-hidden rounded-2xl border border-border/60 bg-card/60"
+              >
                 <button
                   onClick={() => setOpen(isOpen ? null : i)}
                   className="flex w-full items-center justify-between gap-4 p-5 text-left"
                 >
                   <span className="font-medium">{f.q}</span>
-                  <ChevronDown className={`h-4 w-4 shrink-0 text-gold transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                  <ChevronDown
+                    className={`h-4 w-4 shrink-0 text-gold transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  />
                 </button>
                 {isOpen && (
                   <div className="border-t border-border/60 p-5 text-sm leading-relaxed text-muted-foreground">
@@ -294,7 +367,9 @@ function Contact() {
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-[0.28em] text-gold">Message us</div>
             <div className="mt-1 font-display text-2xl font-semibold">Send a note</div>
-            <div className="text-sm text-muted-foreground">Contact form, business hours, and directions</div>
+            <div className="text-sm text-muted-foreground">
+              Contact form, business hours, and directions
+            </div>
           </div>
         </Link>
       </div>

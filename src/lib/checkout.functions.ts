@@ -89,9 +89,7 @@ export const createBookingCheckout = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
       const pickupAt = new Date(data.pickupAt);
-      const estimatedEndAt = new Date(
-        pickupAt.getTime() + quote.durationMinutes * 60 * 1000,
-      );
+      const estimatedEndAt = new Date(pickupAt.getTime() + quote.durationMinutes * 60 * 1000);
 
       const { data: booking, error: bookingError } = await supabaseAdmin
         .from("bookings")

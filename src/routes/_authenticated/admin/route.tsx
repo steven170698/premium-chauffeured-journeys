@@ -1,10 +1,26 @@
-import { createFileRoute, Outlet, Link, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  Link,
+  redirect,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import {
-  LayoutDashboard, CalendarDays, Settings2, ClipboardList, Star, Car,
-  Search, Bell, LogOut, Menu, X,
+  LayoutDashboard,
+  CalendarDays,
+  Settings2,
+  ClipboardList,
+  Star,
+  Car,
+  Search,
+  Bell,
+  LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 import { globalAdminSearch, getAdminOverview } from "@/lib/admin.functions";
 
@@ -43,18 +59,27 @@ function AdminLayout() {
       <TopBar onMenu={() => setMobileOpen((v) => !v)} mobileOpen={mobileOpen} />
       <div className="mb-6">
         <p className="text-xs uppercase tracking-[0.28em] text-gold">Admin</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">
-          Control Center
-        </h1>
+        <h1 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">Control Center</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          {new Date().toLocaleDateString(undefined, {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
         </p>
       </div>
 
       {/* Desktop tabs */}
       <nav className="mb-8 hidden flex-wrap gap-2 border-b border-border/60 pb-3 md:flex">
         {NAV.map((n) => (
-          <NavTab key={n.to} to={n.to} icon={<n.icon className="h-4 w-4" />} label={n.label} exact={n.exact} />
+          <NavTab
+            key={n.to}
+            to={n.to}
+            icon={<n.icon className="h-4 w-4" />}
+            label={n.label}
+            exact={n.exact}
+          />
         ))}
       </nav>
 
@@ -62,7 +87,13 @@ function AdminLayout() {
       {mobileOpen && (
         <div className="mb-6 grid gap-2 rounded-2xl border border-border/60 bg-card/90 p-3 md:hidden">
           {NAV.map((n) => (
-            <NavTab key={n.to} to={n.to} icon={<n.icon className="h-4 w-4" />} label={n.label} exact={n.exact} />
+            <NavTab
+              key={n.to}
+              to={n.to}
+              icon={<n.icon className="h-4 w-4" />}
+              label={n.label}
+              exact={n.exact}
+            />
           ))}
         </div>
       )}
@@ -132,7 +163,10 @@ function TopBar({ onMenu, mobileOpen }: { onMenu: () => void; mobileOpen: boolea
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           value={q}
-          onChange={(e) => { setQ(e.target.value); setOpen(true); }}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+          }}
           onFocus={() => setOpen(true)}
           placeholder="Search reservation, customer, phone or email…"
           className="w-full rounded-full border border-border/60 bg-card px-9 py-2 text-sm outline-none focus:border-gold/60"
@@ -140,35 +174,56 @@ function TopBar({ onMenu, mobileOpen }: { onMenu: () => void; mobileOpen: boolea
         {open && q.trim().length >= 2 && (search?.bookings.length || search?.customers.length) ? (
           <div className="absolute left-0 right-0 top-full z-40 mt-2 max-h-96 overflow-auto rounded-2xl border border-border/60 bg-card p-2 shadow-xl">
             {search?.bookings.length ? (
-              <div className="px-2 pb-1 text-[10px] uppercase tracking-widest text-muted-foreground">Bookings</div>
+              <div className="px-2 pb-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                Bookings
+              </div>
             ) : null}
             {search?.bookings.map((b: any) => (
               <button
                 key={b.id}
                 type="button"
-                onClick={() => { setOpen(false); navigate({ to: "/admin/bookings", search: { q: b.reservation_number } as never }); }}
+                onClick={() => {
+                  setOpen(false);
+                  navigate({ to: "/admin/bookings", search: { q: b.reservation_number } as never });
+                }}
                 className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-secondary/40"
               >
                 <div>
-                  <div className="font-mono text-xs uppercase tracking-widest text-gold">{b.reservation_number}</div>
-                  <div className="text-xs">{b.full_name} <span className="text-muted-foreground">· {b.email}</span></div>
+                  <div className="font-mono text-xs uppercase tracking-widest text-gold">
+                    {b.reservation_number}
+                  </div>
+                  <div className="text-xs">
+                    {b.full_name} <span className="text-muted-foreground">· {b.email}</span>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">{new Date(b.pickup_at).toLocaleDateString()}</div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(b.pickup_at).toLocaleDateString()}
+                </div>
               </button>
             ))}
             {search?.customers.length ? (
-              <div className="mt-1 px-2 pb-1 text-[10px] uppercase tracking-widest text-muted-foreground">Customers</div>
+              <div className="mt-1 px-2 pb-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+                Customers
+              </div>
             ) : null}
             {search?.customers.map((c: any) => (
               <button
                 key={c.id}
                 type="button"
-                onClick={() => { setOpen(false); navigate({ to: "/admin/bookings", search: { q: c.email ?? c.full_name } as never }); }}
+                onClick={() => {
+                  setOpen(false);
+                  navigate({
+                    to: "/admin/bookings",
+                    search: { q: c.email ?? c.full_name } as never,
+                  });
+                }}
                 className="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-secondary/40"
               >
                 <div>
                   <div className="text-sm">{c.full_name || "(no name)"}</div>
-                  <div className="text-xs text-muted-foreground">{c.email} · {c.phone}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {c.email} · {c.phone}
+                  </div>
                 </div>
               </button>
             ))}
@@ -200,7 +255,17 @@ function TopBar({ onMenu, mobileOpen }: { onMenu: () => void; mobileOpen: boolea
   );
 }
 
-function NavTab({ to, icon, label, exact }: { to: string; icon: React.ReactNode; label: string; exact?: boolean }) {
+function NavTab({
+  to,
+  icon,
+  label,
+  exact,
+}: {
+  to: string;
+  icon: React.ReactNode;
+  label: string;
+  exact?: boolean;
+}) {
   return (
     <Link
       to={to}

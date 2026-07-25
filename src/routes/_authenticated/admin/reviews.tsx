@@ -59,7 +59,9 @@ function AdminReviews() {
             </div>
             <span
               className={`rounded-full px-3 py-0.5 text-[10px] uppercase tracking-widest ${
-                r.is_approved ? "bg-gold/15 text-gold border border-gold/40" : "bg-secondary/60 text-muted-foreground border border-border/60"
+                r.is_approved
+                  ? "bg-gold/15 text-gold border border-gold/40"
+                  : "bg-secondary/60 text-muted-foreground border border-border/60"
               }`}
             >
               {r.is_approved ? "Approved" : "Pending"}

@@ -153,7 +153,16 @@ function TodayView() {
       {rides.length === 0 ? (
         <EmptyState msg="No rides scheduled today." />
       ) : (
-        rides.map((r: any) => <RideCard key={r.id} ride={r} onChange={() => { refetch(); earnings.refetch(); }} />)
+        rides.map((r: any) => (
+          <RideCard
+            key={r.id}
+            ride={r}
+            onChange={() => {
+              refetch();
+              earnings.refetch();
+            }}
+          />
+        ))
       )}
     </div>
   );
@@ -167,7 +176,8 @@ function UpcomingView() {
   const fetchUpcoming = useServerFn(listUpcomingRides);
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["driver", "upcoming", range, status],
-    queryFn: () => fetchUpcoming({ data: { range, ...(status !== "all" ? { status: status as any } : {}) } }),
+    queryFn: () =>
+      fetchUpcoming({ data: { range, ...(status !== "all" ? { status: status as any } : {}) } }),
   });
 
   return (
@@ -229,7 +239,13 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
   const changeStatus = useServerFn(updateTripStatus);
   const statusMut = useMutation({
     mutationFn: (payload: { status: string; confirmDemote?: boolean }) =>
-      changeStatus({ data: { bookingId: ride.id, status: payload.status as any, confirmDemote: payload.confirmDemote } }),
+      changeStatus({
+        data: {
+          bookingId: ride.id,
+          status: payload.status as any,
+          confirmDemote: payload.confirmDemote,
+        },
+      }),
     onSuccess: () => {
       toast.success("Status updated");
       onChange();
@@ -290,7 +306,12 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
         : ride.payment_status === "authorized"
           ? "\n\nThe hold on the passenger's card will be released."
           : "";
-    if (!window.confirm(`Cancel ride ${ride.reservation_number}?${paidNote}\n\nThe passenger will be notified by email.`)) return;
+    if (
+      !window.confirm(
+        `Cancel ride ${ride.reservation_number}?${paidNote}\n\nThe passenger will be notified by email.`,
+      )
+    )
+      return;
     const reason = window.prompt("Reason for cancelling (shown to the passenger, optional):") ?? "";
     cancelMut.mutate(reason.trim());
   };
@@ -302,7 +323,10 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
       destination: ride.destination_address,
       travelmode: "driving",
     });
-    const stops = (ride.extra_stops ?? "").split("\n").map((s: string) => s.trim()).filter(Boolean);
+    const stops = (ride.extra_stops ?? "")
+      .split("\n")
+      .map((s: string) => s.trim())
+      .filter(Boolean);
     if (stops.length) params.set("waypoints", stops.join("|"));
     return `https://www.google.com/maps/dir/?${params.toString()}`;
   }, [ride]);
@@ -347,7 +371,6 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
         <div className="space-y-4 border-t border-border/60 p-4">
           {/* Trip Tracker (GPS + guided state machine) */}
           <TripTracker ride={ride} onChange={onChange} />
-
 
           {/* Contact actions */}
           <div className="grid grid-cols-4 gap-2">
@@ -439,9 +462,7 @@ function RideCard({ ride, onChange }: { ride: any; onChange: () => void }) {
                     statusMut.mutate({ status: s.key });
                   }}
                   disabled={
-                    statusMut.isPending ||
-                    cancelMut.isPending ||
-                    ride.trip_status === s.key
+                    statusMut.isPending || cancelMut.isPending || ride.trip_status === s.key
                   }
                   className={`rounded-lg border px-3 py-3 text-sm font-medium transition ${
                     ride.trip_status === s.key
@@ -623,7 +644,9 @@ function EarningsSummary({ data, compact }: { data: any; compact?: boolean }) {
         {cards.map((c) => (
           <div key={c.label} className="rounded-xl border border-border/60 bg-card/50 p-3">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{c.label}</p>
-            <p className={`mt-1 font-semibold ${c.accent ?? ""} ${compact ? "text-sm" : "text-lg"}`}>
+            <p
+              className={`mt-1 font-semibold ${c.accent ?? ""} ${compact ? "text-sm" : "text-lg"}`}
+            >
               {fmtMoney(c.val)}
             </p>
           </div>
@@ -652,9 +675,13 @@ function AvailabilityView() {
     queryFn: () => fetchFn(),
   });
 
-  const [status, setStatus] = useState<"available" | "busy" | "vacation" | "offline" | "not_accepting">("available");
+  const [status, setStatus] = useState<
+    "available" | "busy" | "vacation" | "offline" | "not_accepting"
+  >("available");
   const [starts, setStarts] = useState(() => new Date().toISOString().slice(0, 16));
-  const [ends, setEnds] = useState(() => new Date(Date.now() + 3600_000).toISOString().slice(0, 16));
+  const [ends, setEnds] = useState(() =>
+    new Date(Date.now() + 3600_000).toISOString().slice(0, 16),
+  );
   const [msg, setMsg] = useState(
     "We are currently unavailable for immediate service. Please schedule a future ride.",
   );
@@ -662,11 +689,15 @@ function AvailabilityView() {
 
   const create = useMutation({
     mutationFn: () => {
-      let s = starts, e = ends;
+      let s = starts,
+        e = ends;
       if (allDay) {
-        const d = new Date(starts); d.setHours(0, 0, 0, 0);
-        const d2 = new Date(starts); d2.setHours(23, 59, 59, 999);
-        s = d.toISOString(); e = d2.toISOString();
+        const d = new Date(starts);
+        d.setHours(0, 0, 0, 0);
+        const d2 = new Date(starts);
+        d2.setHours(23, 59, 59, 999);
+        s = d.toISOString();
+        e = d2.toISOString();
       } else {
         s = new Date(starts).toISOString();
         e = new Date(ends).toISOString();
@@ -785,14 +816,18 @@ function AvailabilityView() {
                     <Ban className="h-3 w-3 text-gold" />
                     {a.status.replace("_", " ")}
                     {a.is_current && (
-                      <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[10px] text-gold">Current</span>
+                      <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[10px] text-gold">
+                        Current
+                      </span>
                     )}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {fmtDateTime(a.starts_at)} → {fmtDateTime(a.ends_at)}
                   </p>
                   {a.customer_message && (
-                    <p className="mt-1 text-xs italic text-muted-foreground">"{a.customer_message}"</p>
+                    <p className="mt-1 text-xs italic text-muted-foreground">
+                      "{a.customer_message}"
+                    </p>
                   )}
                 </div>
                 <button
@@ -824,7 +859,9 @@ function StatusPill({ status }: { status: string }) {
     canceled: "bg-destructive/10 text-destructive",
   };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${map[status] ?? "bg-muted"}`}>
+    <span
+      className={`rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ${map[status] ?? "bg-muted"}`}
+    >
       {status.replace(/_/g, " ")}
     </span>
   );
@@ -903,7 +940,13 @@ function EmptyState({ msg }: { msg: string }) {
 
 function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
   const qc = useQueryClient();
-  const env = (() => { try { return getStripeEnvironment(); } catch { return "sandbox" as const; } })();
+  const env = (() => {
+    try {
+      return getStripeEnvironment();
+    } catch {
+      return "sandbox" as const;
+    }
+  })();
   const status = ride.trip_status as string;
   const [tolls, setTolls] = useState("0");
   const [parking, setParking] = useState("0");
@@ -979,7 +1022,10 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
   });
 
   const start = useMutation({
-    mutationFn: () => startFn({ data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc } }),
+    mutationFn: () =>
+      startFn({
+        data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc },
+      }),
     ...opts("On the way to pickup"),
   });
   const arrived = useMutation({
@@ -987,21 +1033,25 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
     ...opts("Arrived — waiting clock started"),
   });
   const pickup = useMutation({
-    mutationFn: () => pickupFn({ data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc } }),
+    mutationFn: () =>
+      pickupFn({
+        data: { bookingId: ride.id, lat: lastFix?.lat, lng: lastFix?.lng, accuracy: lastFix?.acc },
+      }),
     ...opts("Passenger picked up — trip meter running"),
   });
   const end = useMutation({
-    mutationFn: () => endFn({
-      data: {
-        bookingId: ride.id,
-        tolls: Number(tolls) || 0,
-        parking: Number(parking) || 0,
-        environment: env,
-        lat: lastFix?.lat,
-        lng: lastFix?.lng,
-        accuracy: lastFix?.acc,
-      },
-    }),
+    mutationFn: () =>
+      endFn({
+        data: {
+          bookingId: ride.id,
+          tolls: Number(tolls) || 0,
+          parking: Number(parking) || 0,
+          environment: env,
+          lat: lastFix?.lat,
+          lng: lastFix?.lng,
+          accuracy: lastFix?.acc,
+        },
+      }),
     ...opts("Trip completed"),
   });
   const abort = useMutation({
@@ -1009,7 +1059,16 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
     ...opts("Trip reset"),
   });
 
-  if (["completed", "canceled", "declined", "payment_expired", "pending_approval", "awaiting_payment"].includes(status)) {
+  if (
+    [
+      "completed",
+      "canceled",
+      "declined",
+      "payment_expired",
+      "pending_approval",
+      "awaiting_payment",
+    ].includes(status)
+  ) {
     return null;
   }
 
@@ -1022,7 +1081,9 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
   return (
     <div className="rounded-2xl border border-gold/40 bg-gold/5 p-3">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-gold">Trip Tracker</p>
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-gold">
+          Trip Tracker
+        </p>
         {lastFix ? (
           <span className="text-[10px] text-muted-foreground">
             GPS · ±{Math.round(lastFix.acc ?? 0)}m
@@ -1045,17 +1106,29 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
 
       <div className="grid grid-cols-2 gap-2">
         {(status === "confirmed" || status === "driver_preparing") && (
-          <button onClick={() => start.mutate()} disabled={start.isPending} className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50">
+          <button
+            onClick={() => start.mutate()}
+            disabled={start.isPending}
+            className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50"
+          >
             Start Trip → En route
           </button>
         )}
         {status === "driver_en_route" && (
-          <button onClick={() => arrived.mutate()} disabled={arrived.isPending} className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50">
+          <button
+            onClick={() => arrived.mutate()}
+            disabled={arrived.isPending}
+            className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50"
+          >
             Arrived at Pickup
           </button>
         )}
         {status === "driver_arrived" && (
-          <button onClick={() => pickup.mutate()} disabled={pickup.isPending} className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50">
+          <button
+            onClick={() => pickup.mutate()}
+            disabled={pickup.isPending}
+            className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50"
+          >
             Passenger Picked Up
           </button>
         )}
@@ -1063,19 +1136,39 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
           <>
             <label className="text-[10px] text-muted-foreground">
               Tolls ($)
-              <input type="number" step="0.01" value={tolls} onChange={(e) => setTolls(e.target.value)} className="mt-0.5 w-full rounded border border-border/60 bg-background p-1.5 text-sm" />
+              <input
+                type="number"
+                step="0.01"
+                value={tolls}
+                onChange={(e) => setTolls(e.target.value)}
+                className="mt-0.5 w-full rounded border border-border/60 bg-background p-1.5 text-sm"
+              />
             </label>
             <label className="text-[10px] text-muted-foreground">
               Parking ($)
-              <input type="number" step="0.01" value={parking} onChange={(e) => setParking(e.target.value)} className="mt-0.5 w-full rounded border border-border/60 bg-background p-1.5 text-sm" />
+              <input
+                type="number"
+                step="0.01"
+                value={parking}
+                onChange={(e) => setParking(e.target.value)}
+                className="mt-0.5 w-full rounded border border-border/60 bg-background p-1.5 text-sm"
+              />
             </label>
-            <button onClick={() => end.mutate()} disabled={end.isPending} className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50">
+            <button
+              onClick={() => end.mutate()}
+              disabled={end.isPending}
+              className="col-span-2 rounded-lg bg-gold py-3 text-sm font-semibold text-black disabled:opacity-50"
+            >
               End Trip & Finalize Fare
             </button>
           </>
         )}
         {["driver_en_route", "driver_arrived", "picked_up"].includes(status) && (
-          <button onClick={() => abort.mutate()} disabled={abort.isPending} className="col-span-2 rounded-lg border border-destructive/40 py-2 text-xs text-destructive">
+          <button
+            onClick={() => abort.mutate()}
+            disabled={abort.isPending}
+            className="col-span-2 rounded-lg border border-destructive/40 py-2 text-xs text-destructive"
+          >
             Reset trip meter
           </button>
         )}
@@ -1104,4 +1197,3 @@ function TripTracker({ ride, onChange }: { ride: any; onChange: () => void }) {
     </div>
   );
 }
-

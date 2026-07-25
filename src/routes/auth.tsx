@@ -9,7 +9,10 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — Stevie Services LLC" },
-      { name: "description", content: "Sign in or create an account to book and manage your Stevie Services rides." },
+      {
+        name: "description",
+        content: "Sign in or create an account to book and manage your Stevie Services rides.",
+      },
     ],
   }),
   component: AuthPage,
@@ -71,7 +74,11 @@ function AuthPage() {
     <div className="relative min-h-[80vh]">
       <div className="absolute inset-0 -z-10 bg-radial-gold" />
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-16">
-        <img src={stevieLogo} alt="Stevie Services" className="h-16 w-16 rounded-full object-cover ring-1 ring-gold/40 shadow-gold-glow" />
+        <img
+          src={stevieLogo}
+          alt="Stevie Services"
+          className="h-16 w-16 rounded-full object-cover ring-1 ring-gold/40 shadow-gold-glow"
+        />
         <h1 className="mt-6 font-display text-3xl font-semibold text-center">
           {mode === "signin" ? "Welcome back" : "Create your account"}
         </h1>
@@ -83,12 +90,39 @@ function AuthPage() {
           <form onSubmit={handleSubmit} className="space-y-3">
             {mode === "signup" && (
               <>
-                <IconInput icon={<User className="h-4 w-4" />} placeholder="Full name" value={fullName} onChange={setFullName} required />
-                <IconInput icon={<Phone className="h-4 w-4" />} placeholder="Phone number" value={phone} onChange={setPhone} type="tel" required />
+                <IconInput
+                  icon={<User className="h-4 w-4" />}
+                  placeholder="Full name"
+                  value={fullName}
+                  onChange={setFullName}
+                  required
+                />
+                <IconInput
+                  icon={<Phone className="h-4 w-4" />}
+                  placeholder="Phone number"
+                  value={phone}
+                  onChange={setPhone}
+                  type="tel"
+                  required
+                />
               </>
             )}
-            <IconInput icon={<Mail className="h-4 w-4" />} placeholder="Email address" value={email} onChange={setEmail} type="email" required />
-            <IconInput icon={<Lock className="h-4 w-4" />} placeholder="Password" value={password} onChange={setPassword} type="password" required />
+            <IconInput
+              icon={<Mail className="h-4 w-4" />}
+              placeholder="Email address"
+              value={email}
+              onChange={setEmail}
+              type="email"
+              required
+            />
+            <IconInput
+              icon={<Lock className="h-4 w-4" />}
+              placeholder="Password"
+              value={password}
+              onChange={setPassword}
+              type="password"
+              required
+            />
             <button
               type="submit"
               disabled={loading}
@@ -120,8 +154,20 @@ function AuthPage() {
 }
 
 function IconInput({
-  icon, placeholder, value, onChange, type = "text", required,
-}: { icon: React.ReactNode; placeholder: string; value: string; onChange: (v: string) => void; type?: string; required?: boolean }) {
+  icon,
+  placeholder,
+  value,
+  onChange,
+  type = "text",
+  required,
+}: {
+  icon: React.ReactNode;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  required?: boolean;
+}) {
   // Password fields get an eye toggle so people can check what they typed.
   const isPassword = type === "password";
   const [revealed, setRevealed] = useState(false);

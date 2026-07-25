@@ -73,35 +73,32 @@ export async function computeQuoteInternal(input: {
     throw new Error("Google Maps credentials are not configured.");
   }
 
-  const routeRes = await fetch(
-    "https://routes.googleapis.com/directions/v2:computeRoutes",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-        "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
-      },
-      body: JSON.stringify({
-        origin: {
-          location: {
-            latLng: { latitude: input.pickup.lat, longitude: input.pickup.lng },
-          },
-        },
-        destination: {
-          location: {
-            latLng: {
-              latitude: input.destination.lat,
-              longitude: input.destination.lng,
-            },
-          },
-        },
-        travelMode: "DRIVE",
-        routingPreference: "TRAFFIC_AWARE",
-        units: "IMPERIAL",
-      }),
+  const routeRes = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+      "X-Goog-FieldMask": "routes.distanceMeters,routes.duration",
     },
-  );
+    body: JSON.stringify({
+      origin: {
+        location: {
+          latLng: { latitude: input.pickup.lat, longitude: input.pickup.lng },
+        },
+      },
+      destination: {
+        location: {
+          latLng: {
+            latitude: input.destination.lat,
+            longitude: input.destination.lng,
+          },
+        },
+      },
+      travelMode: "DRIVE",
+      routingPreference: "TRAFFIC_AWARE",
+      units: "IMPERIAL",
+    }),
+  });
   if (!routeRes.ok) {
     const body = await routeRes.text();
     console.error(`Routes API failed [${routeRes.status}]: ${body}`);
@@ -212,9 +209,7 @@ export async function computeQuoteInternal(input: {
     const applicable = pcts.filter((p) => p > 0);
     if (applicable.length) {
       surchargePct =
-        stacking === "highest"
-          ? Math.max(...applicable)
-          : applicable.reduce((a, b) => a + b, 0);
+        stacking === "highest" ? Math.max(...applicable) : applicable.reduce((a, b) => a + b, 0);
     }
   }
 

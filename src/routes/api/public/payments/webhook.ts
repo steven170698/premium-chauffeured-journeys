@@ -44,7 +44,6 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               return Response.json({ received: true });
             }
 
-
             const paid = (session.amount_total ?? 0) / 100;
             const stripePi =
               typeof session.payment_intent === "string" ? session.payment_intent : null;
@@ -53,9 +52,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               // Top-up for a completed trip's remaining balance.
               const prevPaid = Number((booking as any).amount_paid ?? 0);
               const newPaid = +(prevPaid + paid).toFixed(2);
-              const finalFare = Number(
-                (booking as any).final_fare ?? (booking as any).total ?? 0,
-              );
+              const finalFare = Number((booking as any).final_fare ?? (booking as any).total ?? 0);
               const remaining = Math.max(0, +(finalFare - newPaid).toFixed(2));
               await supabaseAdmin
                 .from("bookings")
@@ -72,8 +69,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             // Only confirm if the booking is still awaiting payment and not past its deadline.
             const stillAwaiting = booking.trip_status === "awaiting_payment";
             const withinWindow =
-              !booking.payment_deadline_at ||
-              new Date(booking.payment_deadline_at) >= new Date();
+              !booking.payment_deadline_at || new Date(booking.payment_deadline_at) >= new Date();
 
             if (stillAwaiting && withinWindow) {
               // Payments are authorised, not captured (capture_method: manual).
@@ -161,7 +157,6 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
                 booking.trip_status,
               );
             }
-
           } else if (event.type === "transaction.payment_failed") {
             // Nothing to do — booking stays in awaiting_payment until customer
             // retries or the payment deadline expires it.

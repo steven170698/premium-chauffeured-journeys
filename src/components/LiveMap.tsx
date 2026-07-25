@@ -89,8 +89,7 @@ export function LiveMap({ pickup, driver }: { pickup: LatLng; driver: LatLng | n
       driverMarkerRef.current = L.marker([driver.lat, driver.lng], {
         icon: L.divIcon({
           className: "",
-          html:
-            '<div style="width:24px;height:24px;border-radius:50%;background:#d4af37;border:3px solid #fff;box-shadow:0 0 0 2px rgba(212,175,55,.5);display:grid;place-items:center;font-size:12px">🚗</div>',
+          html: '<div style="width:24px;height:24px;border-radius:50%;background:#d4af37;border:3px solid #fff;box-shadow:0 0 0 2px rgba(212,175,55,.5);display:grid;place-items:center;font-size:12px">🚗</div>',
           iconSize: [24, 24],
           iconAnchor: [12, 12],
         }),
@@ -114,9 +113,6 @@ export function LiveMap({ pickup, driver }: { pickup: LatLng; driver: LatLng | n
   }, [driver?.lat, driver?.lng, pickup.lat, pickup.lng]);
 
   return (
-    <div
-      ref={elRef}
-      className="h-72 w-full overflow-hidden rounded-2xl border border-border/60"
-    />
+    <div ref={elRef} className="h-72 w-full overflow-hidden rounded-2xl border border-border/60" />
   );
 }
