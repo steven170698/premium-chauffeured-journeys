@@ -25,7 +25,7 @@ const BIAS_LON = -74.0;
 
 /**
  * Server-proxied Google Places (New) autocomplete. Keeps the API key server-side
- * (Lovable secret GOOGLE_MAPS_API_KEY) so nothing is exposed in the browser and
+ * (GOOGLE_MAPS_API_KEY in the Vercel project) so nothing is exposed in the browser and
  * it works on any domain. Best-effort: returns [] on any failure so the booking
  * UI degrades gracefully instead of throwing.
  */
