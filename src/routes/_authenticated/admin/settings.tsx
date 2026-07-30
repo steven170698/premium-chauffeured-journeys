@@ -145,41 +145,57 @@ function AdminSettings() {
         }}
         className="space-y-8"
       >
-        <Section title="Fare rates" desc="These drive every quote on the booking page.">
+        <Section
+          title="Fare rates"
+          desc="These drive every quote on the booking page. Use Remove on any charge you don't want — it drops out of the quote entirely, and Restore brings it back."
+        >
           <NumField
             label="Base fare ($)"
             value={form.base_fare}
             onChange={(v) => update("base_fare", v)}
+            removable
+            hint="Flat amount added to every ride before distance and time."
           />
           <NumField
             label="Per mile ($)"
             value={form.per_mile_rate}
             onChange={(v) => update("per_mile_rate", v)}
+            removable
+            hint="Multiplied by the driving distance Google returns."
           />
           <NumField
             label="Per minute ($)"
             value={form.per_minute_rate}
             onChange={(v) => update("per_minute_rate", v)}
+            removable
+            hint="Multiplied by the estimated drive time."
           />
           <NumField
             label="Booking fee ($)"
             value={form.booking_fee}
             onChange={(v) => update("booking_fee", v)}
+            removable
           />
           <NumField
             label="Airport pickup fee ($)"
             value={form.airport_surcharge}
             onChange={(v) => update("airport_surcharge", v)}
+            removable
+            hint="Added when the pickup is an airport."
           />
           <NumField
             label="Airport drop-off fee ($)"
             value={form.airport_dropoff_fee}
             onChange={(v) => update("airport_dropoff_fee", v)}
+            removable
+            hint="Added when the destination is an airport."
           />
           <NumField
             label="Extra stop fee ($)"
             value={form.stop_fee}
             onChange={(v) => update("stop_fee", v)}
+            removable
+            hint="Charged per additional stop."
           />
         </Section>
 
@@ -196,6 +212,8 @@ function AdminSettings() {
             label="Waiting rate ($/min after free)"
             value={form.pickup_waiting_rate}
             onChange={(v) => update("pickup_waiting_rate", v)}
+            removable
+            hint="Remove to never charge for waiting."
           />
         </Section>
 
@@ -212,6 +230,8 @@ function AdminSettings() {
             label="Minimum fare ($)"
             value={form.minimum_fare}
             onChange={(v) => update("minimum_fare", v)}
+            removable
+            hint="Floor price — a quote is raised to this even after you remove other charges. Remove it to let short trips price freely."
           />
         </Section>
 
@@ -273,11 +293,13 @@ function AdminSettings() {
             label="Meet & greet fee ($)"
             value={form.meet_greet_fee}
             onChange={(v) => update("meet_greet_fee", v)}
+            removable
           />
           <NumField
             label="Child seat fee ($)"
             value={form.child_seat_fee}
             onChange={(v) => update("child_seat_fee", v)}
+            removable
           />
         </Section>
 
@@ -515,21 +537,63 @@ function NumField({
   label,
   value,
   onChange,
+  removable,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  /** Show a Remove/Restore control — a charge at 0 is left out of every quote. */
+  removable?: boolean;
+  hint?: string;
 }) {
+  const isOff = removable === true && Number(value || 0) === 0;
+  // Remember what it was so "Restore" can put it back.
+  const [lastValue, setLastValue] = useState("");
+
   return (
     <label className="block">
-      <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+        {removable &&
+          (isOff ? (
+            <button
+              type="button"
+              onClick={() => onChange(lastValue && Number(lastValue) > 0 ? lastValue : "1")}
+              className="text-[10px] uppercase tracking-widest text-gold hover:underline"
+            >
+              Restore
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setLastValue(value);
+                onChange("0");
+              }}
+              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-red-400"
+            >
+              Remove
+            </button>
+          ))}
+      </span>
       <input
         type="number"
         step="0.01"
+        min="0"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm outline-none focus:border-gold/60"
+        className={`mt-1 w-full rounded-xl border bg-card px-3 py-2 text-sm outline-none focus:border-gold/60 ${
+          isOff ? "border-border/30 text-muted-foreground" : "border-border/60"
+        }`}
       />
+      {isOff ? (
+        <span className="mt-1 block text-[11px] text-muted-foreground">
+          Not charged — this line is left off every quote.
+        </span>
+      ) : (
+        hint && <span className="mt-1 block text-[11px] text-muted-foreground">{hint}</span>
+      )}
     </label>
   );
 }

@@ -27,6 +27,28 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [sendingReset, setSendingReset] = useState(false);
+
+  /** Email a recovery link that lands on /reset-password. */
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast.error("Enter your email address first, then tap “Forgot password?”.");
+      return;
+    }
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      // Deliberately not revealing whether the address exists.
+      toast.success("If that email has an account, a reset link is on its way.");
+    } catch (err: any) {
+      toast.error(err.message || "Could not send the reset email");
+    } finally {
+      setSendingReset(false);
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -132,6 +154,19 @@ function AuthPage() {
               {mode === "signin" ? "Sign in" : "Create account"}
             </button>
           </form>
+
+          {mode === "signin" && (
+            <div className="mt-3 text-center">
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                disabled={sendingReset}
+                className="text-xs text-muted-foreground hover:text-gold disabled:opacity-60"
+              >
+                {sendingReset ? "Sending reset link…" : "Forgot password?"}
+              </button>
+            </div>
+          )}
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
             {mode === "signin" ? "New here?" : "Already have an account?"}{" "}
